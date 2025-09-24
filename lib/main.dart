@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
-import 'auth/login.dart';
-import 'auth/signup.dart';
-import 'screens/home.dart';
-import 'screens/history.dart';
-import 'screens/payment.dart'; // <-- new
+import 'package:prototype_1/auth/login.dart';
+import 'package:prototype_1/auth/signup.dart';
+import 'package:prototype_1/screens/home.dart';
+import 'package:prototype_1/screens/history.dart';
+import 'package:prototype_1/screens/payment.dart';
+import 'package:prototype_1/screens/loan.dart';
 
 void main() {
   runApp(const MyApp());
@@ -29,9 +30,9 @@ class MyApp extends StatelessWidget {
           final username = (args is String) ? args : '[username]';
           return HomeScreen(username: username);
         },
-        '/payment': (context) => const PaymentScreen(), // <-- added
+        '/payment': (context) => const PaymentScreen(),
+        '/loan': (context) => const LoanScreen(),
         '/history': (context) {
-          // Accept a List<HistoryItem> through arguments when present.
           final args = ModalRoute.of(context)?.settings.arguments;
           if (args is List<HistoryItem>) {
             return HistoryScreen(items: args);

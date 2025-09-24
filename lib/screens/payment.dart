@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'history.dart';
+import 'package:prototype_1/screens/history.dart';
 
 class PaymentScreen extends StatefulWidget {
   const PaymentScreen({super.key});
@@ -40,7 +40,6 @@ class _PaymentScreenState extends State<PaymentScreen> {
     setState(() => _isProcessing = true);
     final amount = _parseAmount(_controller.text);
 
-    // Show a confirmation dialog first
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -53,18 +52,16 @@ class _PaymentScreenState extends State<PaymentScreen> {
       ),
     );
 
-    // IMPORTANT: do not use context across async gaps without checking mounted
     if (!mounted) return;
 
     if (confirmed == true) {
-      // Create a HistoryItem and navigate to history with that single entry.
       final item = HistoryItem(date: DateTime.now(), amount: amount, operation: 'Payment');
 
-      // Small delay to simulate processing and to show the progress indicator briefly.
+      // Small simulated processing delay
       await Future.delayed(const Duration(milliseconds: 350));
-
       if (!mounted) return;
-      // Navigate to history and pass the item as a list argument
+
+      // Navigate to history with the single item (for testing without a DB)
       Navigator.pushNamed(context, '/history', arguments: [item]);
     }
 
@@ -72,14 +69,11 @@ class _PaymentScreenState extends State<PaymentScreen> {
     setState(() => _isProcessing = false);
   }
 
-  // Optional: simple formatter that groups thousands with commas while typing.
-  // Keep it simple and forgiving: allow digits and at most one decimal point.
   List<TextInputFormatter> _inputFormatters() {
     return [
       FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
       TextInputFormatter.withFunction((oldValue, newValue) {
         final text = newValue.text;
-        // allow empty
         if (text.isEmpty) return newValue;
 
         // disallow multiple dots
@@ -98,7 +92,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
         if (text.contains('.')) {
           final parts = text.split('.');
           if (parts.length > 1 && parts[1].length > 2) {
-            return oldValue; // reject extra digits after 2 decimals
+            return oldValue;
           }
         }
 
@@ -168,7 +162,6 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
               const SizedBox(height: 24),
 
-              // Buttons row
               Row(
                 children: [
                   Expanded(
@@ -199,7 +192,6 @@ class _PaymentScreenState extends State<PaymentScreen> {
                 ],
               ),
 
-              // Helpful hint
               const SizedBox(height: 16),
               const Text(
                 'Tip: enter numbers only. You can include cents (e.g. 1500.50).',

@@ -52,11 +52,12 @@ class HomeScreen extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         _actionCard(Icons.account_balance, 'Loan', () {
-          // TODO
+          // Navigate to the Loan screen
+          Navigator.pushNamed(context, '/loan');
         }),
         const SizedBox(width: 8),
         _actionCard(Icons.payment, 'Pay', () {
-          // Navigate to the new Payment screen
+          // Navigate to the Payment screen
           Navigator.pushNamed(context, '/payment');
         }),
         const SizedBox(width: 8),

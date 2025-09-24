@@ -13,11 +13,9 @@ class HistoryItem {
 }
 
 class HistoryScreen extends StatelessWidget {
-  // History is empty by default because there's no DB/auth yet.
-  // Later you can pass real data via Navigator.arguments or a provider.
-  final List<HistoryItem> items;
-
   const HistoryScreen({super.key, this.items = const []});
+
+  final List<HistoryItem> items;
 
   String _formatDate(DateTime dt) {
     final y = dt.year.toString().padLeft(4, '0');
