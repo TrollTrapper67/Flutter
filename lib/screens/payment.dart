@@ -1,204 +1,179 @@
+// lib/screens/payment.dart
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:prototype_1/screens/history.dart';
 
-class PaymentScreen extends StatefulWidget {
-  const PaymentScreen({super.key});
+class PaymentPage extends StatefulWidget {
+  static const routeName = '/payment';
+  const PaymentPage({super.key});
 
   @override
-  State<PaymentScreen> createState() => _PaymentScreenState();
+  State<PaymentPage> createState() => _PaymentPageState();
 }
 
-class _PaymentScreenState extends State<PaymentScreen> {
-  final TextEditingController _controller = TextEditingController();
-  final _formKey = GlobalKey<FormState>();
-  bool _isProcessing = false;
+class _PaymentPageState extends State<PaymentPage> {
+  final TextEditingController _amountController = TextEditingController();
+  final TextEditingController _notesController = TextEditingController();
 
   @override
   void dispose() {
-    _controller.dispose();
+    _amountController.dispose();
+    _notesController.dispose();
     super.dispose();
   }
 
-  String? _validateAmount(String? text) {
-    if (text == null || text.trim().isEmpty) return 'Enter an amount';
-    final cleaned = text.replaceAll(',', '');
-    final value = double.tryParse(cleaned);
-    if (value == null) return 'Invalid number';
-    if (value <= 0) return 'Amount must be greater than zero';
-    return null;
+  String _digitsOnly(String s) => s.replaceAll(RegExp(r'[^0-9]'), '');
+
+  String _formatWithCommas(String digits) {
+    if (digits.isEmpty) return '';
+    final chars = digits.split('').reversed.toList();
+    final pieces = <String>[];
+    for (var i = 0; i < chars.length; i += 3) {
+      final piece = chars.skip(i).take(3).toList().reversed.join();
+      pieces.add(piece);
+    }
+    return pieces.reversed.join(',');
   }
 
-  double _parseAmount(String text) {
-    return double.parse(text.replaceAll(',', ''));
+  void _onAmountChanged(String s) {
+    final digits = _digitsOnly(s);
+    final formatted = _formatWithCommas(digits);
+    if (formatted != s) {
+      _amountController.value = TextEditingValue(
+        text: formatted,
+        selection: TextSelection.collapsed(offset: formatted.length),
+      );
+    }
+    setState(() {});
   }
 
-  Future<void> _onProceed() async {
-    final valid = _formKey.currentState?.validate() ?? false;
-    if (!valid) return;
+  int get _amountValue {
+    final digits = _digitsOnly(_amountController.text);
+    if (digits.isEmpty) return 0;
+    return int.tryParse(digits) ?? 0;
+  }
 
-    setState(() => _isProcessing = true);
-    final amount = _parseAmount(_controller.text);
+  Future<void> _confirmPayment() async {
+    if (_amountValue <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Enter an amount to pay')),
+      );
+      return;
+    }
 
-    final confirmed = await showDialog<bool>(
+    final yes = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Confirm payment'),
-        content: Text('Proceed with payment of ₱${amount.toStringAsFixed(2)}?'),
+        content: Text('Proceed to pay ₱ ${_formatWithCommas(_amountValue.toString())}?'),
         actions: [
-          TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('No')),
           ElevatedButton(onPressed: () => Navigator.of(ctx).pop(true), child: const Text('Yes, proceed')),
         ],
       ),
     );
 
+    if (yes != true) return;
+
+    // --- SAFETY CHECK: widget might have been removed while awaiting user input ---
     if (!mounted) return;
 
-    if (confirmed == true) {
-      final item = HistoryItem(date: DateTime.now(), amount: amount, operation: 'Payment');
-
-      // Small simulated processing delay
-      await Future.delayed(const Duration(milliseconds: 350));
-      if (!mounted) return;
-
-      // Navigate to history with the single item (for testing without a DB)
-      Navigator.pushNamed(context, '/history', arguments: [item]);
-    }
-
-    if (!mounted) return;
-    setState(() => _isProcessing = false);
+    // Show success dialog. Use the dialog's ctx for navigation to avoid issues.
+    await showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) {
+        return AlertDialog(
+          title: const Text('Balance paid successfully'),
+          content: const Text('Your payment has been recorded.'),
+          actionsPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+          actions: [
+            Align(
+              alignment: Alignment.bottomRight,
+              child: ElevatedButton(
+                onPressed: () {
+                  Navigator.of(ctx).pop(); // close dialog
+                  Navigator.of(ctx).pushNamedAndRemoveUntil('/home', (route) => false);
+                },
+                child: const Text('OK'),
+              ),
+            ),
+          ],
+        );
+      },
+    );
   }
 
-  List<TextInputFormatter> _inputFormatters() {
-    return [
-      FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
-      TextInputFormatter.withFunction((oldValue, newValue) {
-        final text = newValue.text;
-        if (text.isEmpty) return newValue;
-
-        // disallow multiple dots
-        if ('..'.allMatches(text).isNotEmpty) return oldValue;
-
-        // disallow leading zero followed by digit (except "0." case)
-        if (text.length > 1 && text[0] == '0' && text[1] != '.') {
-          final cleaned = text.replaceFirst(RegExp(r'^0+'), '');
-          return TextEditingValue(
-            text: cleaned.isEmpty ? '0' : cleaned,
-            selection: TextSelection.collapsed(offset: cleaned.length),
-          );
-        }
-
-        // limit to 2 decimal places if a dot exists
-        if (text.contains('.')) {
-          final parts = text.split('.');
-          if (parts.length > 1 && parts[1].length > 2) {
-            return oldValue;
-          }
-        }
-
-        return newValue;
-      }),
-    ];
+  Widget _buildCard({required Widget child}) {
+    return Card(
+      elevation: 6,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      margin: const EdgeInsets.symmetric(vertical: 8),
+      child: Padding(padding: const EdgeInsets.all(14), child: child),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
+    final formattedAmount = _amountController.text.isEmpty ? '-' : '₱ ${_amountController.text}';
+
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Payment'),
-        elevation: 0,
-      ),
-      body: GestureDetector(
-        onTap: () => FocusScope.of(context).unfocus(),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 24),
-          child: Column(
-            children: [
-              const SizedBox(height: 8),
-              Card(
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                elevation: 3,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 22.0, horizontal: 16),
-                  child: Column(
-                    children: [
-                      const Text(
-                        'How much did you pay?',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
-                      ),
-                      const SizedBox(height: 16),
-                      Form(
-                        key: _formKey,
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: TextFormField(
-                                controller: _controller,
-                                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                                inputFormatters: _inputFormatters(),
-                                validator: _validateAmount,
-                                decoration: InputDecoration(
-                                  prefixText: '₱ ',
-                                  hintText: '0.00',
-                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                                  contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
-                                ),
-                                textAlign: TextAlign.left,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 18),
-                      if (_isProcessing)
-                        const LinearProgressIndicator()
-                      else
-                        const SizedBox(height: 4),
-                    ],
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 24),
-
-              Row(
+      appBar: AppBar(title: const Text('Payment'), centerTitle: true, elevation: 2),
+      body: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            _buildCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: () {
-                        Navigator.pop(context);
-                      },
-                      style: OutlinedButton.styleFrom(
-                        shape: const StadiumBorder(),
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                      ),
-                      child: const Text('Back', style: TextStyle(fontSize: 16)),
+                  const Text('How much did you pay?', style: TextStyle(fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: _amountController,
+                    keyboardType: TextInputType.number,
+                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                    decoration: const InputDecoration(
+                      border: OutlineInputBorder(),
+                      hintText: '0',
+                      prefixIcon: Icon(Icons.payments),
                     ),
+                    onChanged: _onAmountChanged,
                   ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: _isProcessing ? null : _onProceed,
-                      style: ElevatedButton.styleFrom(
-                        shape: const StadiumBorder(),
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                      ),
-                      child: _isProcessing
-                          ? const SizedBox(height: 18, width: 18, child: CircularProgressIndicator(strokeWidth: 2))
-                          : const Text('Proceed', style: TextStyle(fontSize: 16)),
-                    ),
+                  const SizedBox(height: 8),
+                  Text('Entered: $formattedAmount', style: const TextStyle(fontSize: 16)),
+                ],
+              ),
+            ),
+            _buildCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Notes (optional)', style: TextStyle(fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: _notesController,
+                    decoration: const InputDecoration(border: OutlineInputBorder(), hintText: 'e.g. partial payment'),
+                    minLines: 1,
+                    maxLines: 3,
                   ),
                 ],
               ),
-
-              const SizedBox(height: 16),
-              const Text(
-                'Tip: enter numbers only. You can include centavos (e.g. 1500.50).',
-                style: TextStyle(fontSize: 12, color: Colors.black54),
-              ),
-            ],
-          ),
+            ),
+            const SizedBox(height: 14),
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: _amountValue > 0 ? _confirmPayment : null,
+                    child: const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 14),
+                      child: Text('Pay', style: TextStyle(fontSize: 16)),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );
