@@ -194,7 +194,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
               const SizedBox(height: 16),
               const Text(
-                'Tip: enter numbers only. You can include cents (e.g. 1500.50).',
+                'Tip: enter numbers only. You can include centavos (e.g. 1500.50).',
                 style: TextStyle(fontSize: 12, color: Colors.black54),
               ),
             ],

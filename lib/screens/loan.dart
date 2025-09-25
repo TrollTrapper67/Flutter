@@ -184,7 +184,7 @@ class _LoanScreenState extends State<LoanScreen> {
                           Expanded(
                             child: DropdownButtonFormField<int>(
                               // use value for older SDK compatibility (zapp.run)
-                              value: _termMonths,
+                              initialValue: _termMonths,
                               items: [6, 12, 24, 36, 48]
                                   .map((m) => DropdownMenuItem(value: m, child: Text('$m months')))
                                   .toList(),
