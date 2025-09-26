@@ -1,0 +1,121 @@
+import 'package:flutter/material.dart';
+
+class HomeScreen extends StatelessWidget {
+  final String? username;
+
+  const HomeScreen({super.key, this.username});
+
+  @override
+  Widget build(BuildContext context) {
+    final routeArg = ModalRoute.of(context)?.settings.arguments;
+    String? routeUsername;
+    if (routeArg is String && routeArg.isNotEmpty) {
+      routeUsername = routeArg;
+    } else if (routeArg != null) {
+      routeUsername = routeArg.toString();
+    }
+
+    final displayName = username ?? routeUsername ?? 'Guest';
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Home'),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                const CircleAvatar(
+                  radius: 28,
+                  child: Icon(Icons.person),
+                ),
+                const SizedBox(width: 12),
+                Text('Welcome, $displayName', style: Theme.of(context).textTheme.titleMedium),
+              ],
+            ),
+            const SizedBox(height: 20),
+            _buildActions(context),
+            const SizedBox(height: 20),
+            _buildHistorySection(context),
+            const SizedBox(height: 8),
+            Expanded(child: _buildRecentActivityList()),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildActions(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        _actionCard(Icons.account_balance, 'Loan', () {
+          // Navigate to the Loan screen
+          Navigator.pushNamed(context, '/loan');
+        }),
+        const SizedBox(width: 8),
+        _actionCard(Icons.payment, 'Pay', () {
+          // Navigate to the Payment screen
+          Navigator.pushNamed(context, '/payment');
+        }),
+        const SizedBox(width: 8),
+        _actionCard(Icons.history, 'View History', () {
+          Navigator.pushNamed(context, '/history');
+        }),
+      ],
+    );
+  }
+
+  Widget _actionCard(IconData icon, String label, VoidCallback onTap) {
+    return Expanded(
+      child: Card(
+        elevation: 2,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        child: InkWell(
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+            child: Column(
+              children: [
+                Icon(icon, size: 28),
+                const SizedBox(height: 8),
+                Text(label),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHistorySection(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        const Text('History', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
+        TextButton(
+          onPressed: () => Navigator.pushNamed(context, '/history'),
+          child: const Text('See all'),
+        )
+      ],
+    );
+  }
+
+  Widget _buildRecentActivityList() {
+    return ListView(
+      children: [
+        ListTile(
+          leading: const CircleAvatar(child: Icon(Icons.payments)),
+          title: const Text('No activity yet.'),
+          subtitle: const SizedBox(height: 6),
+          trailing: IconButton(
+            icon: const Icon(Icons.chevron_right),
+            onPressed: () => {},
+          ),
+        ),
+      ],
+    );
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "205465714107",
+    "project_id": "loandb-c2adb",
+    "storage_bucket": "loandb-c2adb.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:205465714107:android:7304d5c5a12b76360e189e",
+        "android_client_info": {
+          "package_name": "com.example.flutter_project_final"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBRzeQvL-am8vW5Ykyp6rEDuqcpEyfmBGs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
