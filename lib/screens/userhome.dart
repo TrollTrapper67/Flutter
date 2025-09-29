@@ -53,16 +53,16 @@ class HomeScreen extends StatelessWidget {
       children: [
         _actionCard(Icons.account_balance, 'Loan', () {
           // Navigate to the Loan screen
-          Navigator.pushNamed(context, '/loan');
+          Navigator.pushNamed(context, '/userloan');
         }),
         const SizedBox(width: 8),
         _actionCard(Icons.payment, 'Pay', () {
           // Navigate to the Payment screen
-          Navigator.pushNamed(context, '/payment');
+          Navigator.pushNamed(context, '/userpayment');
         }),
         const SizedBox(width: 8),
         _actionCard(Icons.history, 'View History', () {
-          Navigator.pushNamed(context, '/history');
+          Navigator.pushNamed(context, '/userhistory');
         }),
       ],
     );
