@@ -20,6 +20,15 @@ class HomeScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Home'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout),
+            tooltip: "Logout",
+            onPressed: () {
+              _confirmLogout(context);
+            },
+          ),
+        ],
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -32,7 +41,8 @@ class HomeScreen extends StatelessWidget {
                   child: Icon(Icons.person),
                 ),
                 const SizedBox(width: 12),
-                Text('Welcome, $displayName', style: Theme.of(context).textTheme.titleMedium),
+                Text('Welcome, $displayName',
+                    style: Theme.of(context).textTheme.titleMedium),
               ],
             ),
             const SizedBox(height: 20),
@@ -47,17 +57,41 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
+  // 🔹 Confirmation Dialog for Logout
+  void _confirmLogout(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text("Logout"),
+        content: const Text("Are you sure you want to log out?"),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(ctx).pop(); // close dialog
+            },
+            child: const Text("Cancel"),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.of(ctx).pop(); // close dialog
+              Navigator.pushReplacementNamed(context, '/login');
+            },
+            child: const Text("Logout"),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildActions(BuildContext context) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         _actionCard(Icons.account_balance, 'Loan', () {
-          // Navigate to the Loan screen
           Navigator.pushNamed(context, '/userloan');
         }),
         const SizedBox(width: 8),
         _actionCard(Icons.payment, 'Pay', () {
-          // Navigate to the Payment screen
           Navigator.pushNamed(context, '/userpayment');
         }),
         const SizedBox(width: 8),
@@ -94,7 +128,8 @@ class HomeScreen extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        const Text('History', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
+        const Text('History',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
         TextButton(
           onPressed: () => Navigator.pushNamed(context, '/history'),
           child: const Text('See all'),
@@ -112,7 +147,7 @@ class HomeScreen extends StatelessWidget {
           subtitle: const SizedBox(height: 6),
           trailing: IconButton(
             icon: const Icon(Icons.chevron_right),
-            onPressed: () => {},
+            onPressed: () {},
           ),
         ),
       ],

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -17,6 +18,7 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _isLoading = false;
 
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   @override
   void dispose() {
@@ -36,25 +38,38 @@ class _LoginScreenState extends State<LoginScreen> {
         password: _passwordController.text.trim(),
       );
 
-      if (userCredential.user != null) {
-        // ✅ Login success → go to home
-        Navigator.pushReplacementNamed(
-          context,
-          '/home',
-          arguments: userCredential.user!.email,
+      final user = userCredential.user;
+      if (user == null) throw Exception("Login failed");
+
+      // ✅ Get Firestore document by UID
+      final doc = await _firestore.collection("users").doc(user.uid).get();
+
+      if (!doc.exists) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("No profile found in database.")),
         );
+        return;
+      }
+
+      final role = doc.data()?['role'] ?? 'user';
+
+      // ✅ Redirect based on role
+      if (role == 'admin') {
+        Navigator.pushReplacementNamed(context, '/adminDashboard',
+            arguments: user.email);
+      } else {
+        Navigator.pushReplacementNamed(context, '/userDashboard',
+            arguments: user.email);
       }
     } on FirebaseAuthException catch (e) {
       if (e.code == 'user-not-found') {
-        // ❌ No user → redirect to SignUp
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text("No account found. Please sign up first."),
             duration: Duration(seconds: 2),
           ),
         );
-
-        await Future.delayed(const Duration(seconds: 2)); // wait for snackbar
+        await Future.delayed(const Duration(seconds: 2));
         Navigator.pushReplacementNamed(context, '/signup');
       } else if (e.code == 'wrong-password') {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -65,6 +80,10 @@ class _LoginScreenState extends State<LoginScreen> {
           SnackBar(content: Text("Login failed: ${e.message}")),
         );
       }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error: $e")),
+      );
     } finally {
       setState(() => _isLoading = false);
     }
@@ -78,11 +97,13 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Midas Touch', style: TextStyle(
-        fontWeight: FontWeight.bold, color: Colors.yellow),
+      appBar: AppBar(
+        title: const Text(
+          'Midas Touch',
+          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.yellow),
         ),
-      centerTitle: true,
-      backgroundColor: Colors.green,
+        centerTitle: true,
+        backgroundColor: Colors.green,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24.0),
@@ -137,9 +158,11 @@ class _LoginScreenState extends State<LoginScreen> {
                   : ElevatedButton(
                       onPressed: _handleLogin,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color.fromARGB(255, 163, 234, 165),
-                        foregroundColor: const Color.fromARGB(248, 190, 171, 7)),
-                      child: const Text("Login",),
+                          backgroundColor:
+                              const Color.fromARGB(255, 163, 234, 165),
+                          foregroundColor:
+                              const Color.fromARGB(248, 190, 171, 7)),
+                      child: const Text("Login"),
                     ),
               const SizedBox(height: 20),
               TextButton(
