@@ -32,7 +32,7 @@ class MyApp extends StatelessWidget {
        '/adminDashboard': (_) => const AdminDashboard(), // 👈 for admins
        '/userloan': (_) => const LoanPage(),
        '/userpayment': (_) => const PaymentPage(),
-       '/userHistory': (_) => const HistoryPage(),
+       '/userhistory': (_) => const HistoryPage(),
       },
     );
   }
