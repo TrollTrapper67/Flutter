@@ -1,9 +1,36 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class HomeScreen extends StatelessWidget {
   final String? username;
 
   const HomeScreen({super.key, this.username});
+
+  Future<String> _getDisplayName() async {
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user == null) {
+      return "Guest";
+    }
+
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection("users")
+          .doc(user.uid)
+          .get();
+
+      if (doc.exists) {
+        final data = doc.data();
+        if (data != null && data.containsKey("name")) {
+          return data["name"] ?? user.email ?? "Guest";
+        }
+      }
+      return user.email ?? "Guest";
+    } catch (e) {
+      return user.email ?? "Guest";
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -15,7 +42,7 @@ class HomeScreen extends StatelessWidget {
       routeUsername = routeArg.toString();
     }
 
-    final displayName = username ?? routeUsername ?? 'Guest';
+    final fallbackName = username ?? routeUsername ?? "Guest";
 
     return Scaffold(
       appBar: AppBar(
@@ -30,29 +57,36 @@ class HomeScreen extends StatelessWidget {
           ),
         ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            Row(
+      body: FutureBuilder<String>(
+        future: _getDisplayName(),
+        builder: (context, snapshot) {
+          final displayName = snapshot.data ?? fallbackName;
+
+          return Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
               children: [
-                const CircleAvatar(
-                  radius: 28,
-                  child: Icon(Icons.person),
+                Row(
+                  children: [
+                    const CircleAvatar(
+                      radius: 28,
+                      child: Icon(Icons.person),
+                    ),
+                    const SizedBox(width: 12),
+                    Text('Welcome, $displayName',
+                        style: Theme.of(context).textTheme.titleMedium),
+                  ],
                 ),
-                const SizedBox(width: 12),
-                Text('Welcome, $displayName',
-                    style: Theme.of(context).textTheme.titleMedium),
+                const SizedBox(height: 20),
+                _buildActions(context),
+                const SizedBox(height: 20),
+                _buildHistorySection(context),
+                const SizedBox(height: 8),
+                Expanded(child: _buildRecentActivityList()),
               ],
             ),
-            const SizedBox(height: 20),
-            _buildActions(context),
-            const SizedBox(height: 20),
-            _buildHistorySection(context),
-            const SizedBox(height: 8),
-            Expanded(child: _buildRecentActivityList()),
-          ],
-        ),
+          );
+        },
       ),
     );
   }

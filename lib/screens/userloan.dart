@@ -1,5 +1,6 @@
-// lib/screens/loan.dart
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class LoanPage extends StatefulWidget {
   static const routeName = '/loan';
@@ -42,30 +43,66 @@ class _LoanPageState extends State<LoanPage> {
     return '$formatted.$decPart';
   }
 
-  void _onPresetSelected(int months) {
-    setState(() {
-      _useCustom = false;
-      _selectedMonths = months;
-      _customMonthsController.clear();
-    });
-  }
-
-  void _onUseCustom(bool useCustom) {
-    setState(() {
-      _useCustom = useCustom;
-      if (useCustom) {
-        _selectedMonths = null;
-      } else {
-        _customMonthsController.clear();
-      }
-    });
-  }
-
   double get _monthlyPayment {
     final m = _months;
     if (m <= 0) return 0;
-    // Simple division (no APR/interest)
-    return _principal / m;
+    return _principal / m; // simple division
+  }
+
+  Future<void> _applyLoan() async {
+    if (_principal <= 0 || _months <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Enter valid loan amount and term")),
+      );
+      return;
+    }
+
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("User not logged in")),
+      );
+      return;
+    }
+
+    try {
+      await FirebaseFirestore.instance.collection("loan_applications").add({
+        "userId": user.uid,
+        "email": user.email,
+        "principal": _principal,
+        "months": _months,
+        "monthlyPayment": _monthlyPayment,
+        "status": "pending",
+        "createdAt": FieldValue.serverTimestamp(),
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("✅ Loan application submitted")),
+      );
+
+      // Clear input after success
+      _principalController.clear();
+      _customMonthsController.clear();
+      setState(() {
+        _selectedMonths = null;
+        _useCustom = false;
+      });
+    } on FirebaseException catch (e) {
+      if (e.code == "permission-denied") {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text("❌ Permission denied. Check Firestore rules.")),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Error: ${e.message}")),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Unexpected error: $e")),
+      );
+    }
   }
 
   @override
@@ -86,7 +123,6 @@ class _LoanPageState extends State<LoanPage> {
 
   @override
   Widget build(BuildContext context) {
-    // 0.15 * 255 = 38.25 so we use 38 for alpha
     final int alpha15 = 38;
 
     return Scaffold(
@@ -103,11 +139,13 @@ class _LoanPageState extends State<LoanPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Loan amount', style: TextStyle(fontWeight: FontWeight.w600)),
+                  const Text('Loan amount',
+                      style: TextStyle(fontWeight: FontWeight.w600)),
                   const SizedBox(height: 8),
                   TextField(
                     controller: _principalController,
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    keyboardType:
+                        const TextInputType.numberWithOptions(decimal: true),
                     decoration: const InputDecoration(
                       hintText: 'Enter principal (e.g. 55000)',
                       border: OutlineInputBorder(),
@@ -121,7 +159,8 @@ class _LoanPageState extends State<LoanPage> {
                       }
                       _principalController.value = TextEditingValue(
                           text: clean,
-                          selection: TextSelection.collapsed(offset: clean.length));
+                          selection:
+                              TextSelection.collapsed(offset: clean.length));
                       setState(() {});
                     },
                   ),
@@ -132,18 +171,21 @@ class _LoanPageState extends State<LoanPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Choose term (months)', style: TextStyle(fontWeight: FontWeight.w600)),
+                  const Text('Choose term (months)',
+                      style: TextStyle(fontWeight: FontWeight.w600)),
                   const SizedBox(height: 12),
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,
                     children: _presetMonths.map((m) {
-                      final selected = (_useCustom == false && _selectedMonths == m);
+                      final selected =
+                          (_useCustom == false && _selectedMonths == m);
                       return ChoiceChip(
                         label: Text('$m'),
                         selected: selected,
-                        onSelected: (_) => _onPresetSelected(m),
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        onSelected: (_) => setState(() => _onPresetSelected(m)),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 8),
                         selectedColor:
                             Theme.of(context).colorScheme.primary.withAlpha(alpha15),
                       );
@@ -152,7 +194,9 @@ class _LoanPageState extends State<LoanPage> {
                   const SizedBox(height: 12),
                   Row(
                     children: [
-                      Checkbox(value: _useCustom, onChanged: (v) => _onUseCustom(v ?? false)),
+                      Checkbox(
+                          value: _useCustom,
+                          onChanged: (v) => _onUseCustom(v ?? false)),
                       const SizedBox(width: 8),
                       const Text('Enter custom months'),
                       const Spacer(),
@@ -178,20 +222,25 @@ class _LoanPageState extends State<LoanPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Monthly payment', style: TextStyle(fontWeight: FontWeight.w600)),
+                  const Text('Monthly payment',
+                      style: TextStyle(fontWeight: FontWeight.w600)),
                   const SizedBox(height: 12),
                   Row(
                     children: [
                       Text(
-                        _months <= 0 ? '-' : '₱ ${_formatAmount(_monthlyPayment)}',
-                        style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                        _months <= 0
+                            ? '-'
+                            : '₱ ${_formatAmount(_monthlyPayment)}',
+                        style: const TextStyle(
+                            fontSize: 22, fontWeight: FontWeight.bold),
                       ),
                       const Spacer(),
                       ElevatedButton(
                         onPressed: (_principal > 0 && _months > 0)
                             ? () {
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('Loan calculation updated')),
+                                  const SnackBar(
+                                      content: Text('Loan calculation updated')),
                                 );
                               }
                             : null,
@@ -201,16 +250,47 @@ class _LoanPageState extends State<LoanPage> {
                   ),
                   const SizedBox(height: 8),
                   const Text(
-                    'Note: APR/Tip has been removed (not implemented). The monthly payment is principal divided by months.',
+                    'Note: No interest applied. Monthly payment is principal divided by months.',
                     style: TextStyle(fontSize: 12, color: Colors.black54),
                   ),
                 ],
               ),
             ),
             const SizedBox(height: 24),
+
+            // 🔹 Apply Loan Button
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: (_principal > 0 && _months > 0) ? _applyLoan : null,
+                icon: const Icon(Icons.send),
+                label: const Text('Apply Loan'),
+                style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 16)),
+              ),
+            ),
           ],
         ),
       ),
     );
+  }
+
+  void _onPresetSelected(int months) {
+    setState(() {
+      _useCustom = false;
+      _selectedMonths = months;
+      _customMonthsController.clear();
+    });
+  }
+
+  void _onUseCustom(bool useCustom) {
+    setState(() {
+      _useCustom = useCustom;
+      if (useCustom) {
+        _selectedMonths = null;
+      } else {
+        _customMonthsController.clear();
+      }
+    });
   }
 }

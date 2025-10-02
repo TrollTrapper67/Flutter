@@ -14,6 +14,9 @@ class _PaymentPageState extends State<PaymentPage> {
   final TextEditingController _amountController = TextEditingController();
   final TextEditingController _notesController = TextEditingController();
 
+  // 🔹 This should eventually be fetched from Firestore (admin loan balance per user)
+  int _currentBalance = 15000; // example loan balance in dollars
+
   @override
   void dispose() {
     _amountController.dispose();
@@ -60,11 +63,21 @@ class _PaymentPageState extends State<PaymentPage> {
       return;
     }
 
+    if (_amountValue > _currentBalance) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Payment exceeds current balance')),
+      );
+      return;
+    }
+
     final yes = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Confirm payment'),
-        content: Text('Proceed to pay ₱ ${_formatWithCommas(_amountValue.toString())}?'),
+        content: Text(
+          'Proceed to pay \$ ${_formatWithCommas(_amountValue.toString())}?\n\n'
+          'Current Balance: \$ ${_formatWithCommas(_currentBalance.toString())}',
+        ),
         actions: [
           TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('No')),
           ElevatedButton(onPressed: () => Navigator.of(ctx).pop(true), child: const Text('Yes, proceed')),
@@ -73,25 +86,28 @@ class _PaymentPageState extends State<PaymentPage> {
     );
 
     if (yes != true) return;
-
-    // --- SAFETY CHECK: widget might have been removed while awaiting user input ---
     if (!mounted) return;
 
-    // Show success dialog. Use the dialog's ctx for navigation to avoid issues.
+    // 🔹 Deduct from balance (this should also update Firestore)
+    setState(() {
+      _currentBalance -= _amountValue;
+    });
+
     await showDialog(
       context: context,
       barrierDismissible: false,
       builder: (ctx) {
         return AlertDialog(
           title: const Text('Balance paid successfully'),
-          content: const Text('Your payment has been recorded.'),
+          content: Text('Your payment has been recorded.\n'
+              'Remaining Balance: \$ ${_formatWithCommas(_currentBalance.toString())}'),
           actionsPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
           actions: [
             Align(
               alignment: Alignment.bottomRight,
               child: ElevatedButton(
                 onPressed: () {
-                  Navigator.of(ctx).pop(); // close dialog
+                  Navigator.of(ctx).pop();
                   Navigator.of(ctx).pushNamedAndRemoveUntil('/home', (route) => false);
                 },
                 child: const Text('OK'),
@@ -114,7 +130,7 @@ class _PaymentPageState extends State<PaymentPage> {
 
   @override
   Widget build(BuildContext context) {
-    final formattedAmount = _amountController.text.isEmpty ? '-' : '₱ ${_amountController.text}';
+    final formattedAmount = _amountController.text.isEmpty ? '-' : '\$ ${_amountController.text}';
 
     return Scaffold(
       appBar: AppBar(title: const Text('Payment'), centerTitle: true, elevation: 2),
@@ -122,6 +138,22 @@ class _PaymentPageState extends State<PaymentPage> {
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
+            // 🔹 Display Current Balance
+            _buildCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Your Current Loan Balance',
+                      style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
+                  const SizedBox(height: 8),
+                  Text(
+                    '\$ ${_formatWithCommas(_currentBalance.toString())}',
+                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.red),
+                  ),
+                ],
+              ),
+            ),
+
             _buildCard(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,

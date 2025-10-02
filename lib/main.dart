@@ -3,6 +3,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_project_final/auth/login.dart';
 import 'package:flutter_project_final/auth/signup.dart';
 import 'package:flutter_project_final/screens/admin_dashboard.dart';
+import 'package:flutter_project_final/screens/loanapplications.dart';
 import 'package:flutter_project_final/screens/userhistory.dart';
 import 'package:flutter_project_final/screens/userhome.dart';
 import 'package:flutter_project_final/screens/userloan.dart';
@@ -33,6 +34,7 @@ class MyApp extends StatelessWidget {
        '/userloan': (_) => const LoanPage(),
        '/userpayment': (_) => const PaymentPage(),
        '/userhistory': (_) => const HistoryPage(),
+       '/LoanApplicationsPage': (_) => const LoanApplicationsPage(),
       },
     );
   }

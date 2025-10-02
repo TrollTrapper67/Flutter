@@ -7,10 +7,28 @@ class AdminDashboard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Admin Dashboard')),
-      body: const Center(
-        child: Text(
-          'Welcome, Admin!',
-          style: TextStyle(fontSize: 24),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Text(
+              'Welcome, Admin!',
+              style: TextStyle(fontSize: 24),
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton.icon(
+              onPressed: () {
+                // Navigate to Loan Applications page
+                Navigator.pushNamed(context, '/LoanApplicationsPage');
+              },
+              icon: const Icon(Icons.assignment),
+              label: const Text("Check Loan Applications"),
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                textStyle: const TextStyle(fontSize: 16),
+              ),
+            ),
+          ],
         ),
       ),
     );

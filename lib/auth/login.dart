@@ -33,15 +33,34 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _isLoading = true);
 
     try {
+      final email = _emailController.text.trim();
+      final password = _passwordController.text.trim();
+
+      // 🔑 Hardcoded Admin Check
+      if (email == "admin@midas.com" && password == "admin123") {
+        // sign in admin to Firebase for session consistency
+        final userCredential = await _auth.signInWithEmailAndPassword(
+          email: email,
+          password: password,
+        );
+        final user = userCredential.user;
+
+        if (user == null) throw Exception("Login failed");
+
+        Navigator.pushReplacementNamed(context, '/adminDashboard',
+            arguments: user.email);
+        return; // stop here, don’t check Firestore
+      }
+
+      // 🔑 Regular User/Admin via Firestore role
       final userCredential = await _auth.signInWithEmailAndPassword(
-        email: _emailController.text.trim(),
-        password: _passwordController.text.trim(),
+        email: email,
+        password: password,
       );
 
       final user = userCredential.user;
       if (user == null) throw Exception("Login failed");
 
-      // ✅ Get Firestore document by UID
       final doc = await _firestore.collection("users").doc(user.uid).get();
 
       if (!doc.exists) {
@@ -53,7 +72,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
       final role = doc.data()?['role'] ?? 'user';
 
-      // ✅ Redirect based on role
       if (role == 'admin') {
         Navigator.pushReplacementNamed(context, '/adminDashboard',
             arguments: user.email);
