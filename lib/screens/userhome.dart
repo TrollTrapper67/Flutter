@@ -68,13 +68,12 @@ class HomeScreen extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    const CircleAvatar(
-                      radius: 28,
-                      child: Icon(Icons.person),
-                    ),
+                    const CircleAvatar(radius: 28, child: Icon(Icons.person)),
                     const SizedBox(width: 12),
-                    Text('Welcome, $displayName',
-                        style: Theme.of(context).textTheme.titleMedium),
+                    Text(
+                      'Welcome, $displayName',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
                   ],
                 ),
                 const SizedBox(height: 20),
@@ -162,12 +161,14 @@ class HomeScreen extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        const Text('History',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
+        const Text(
+          'History',
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+        ),
         TextButton(
-          onPressed: () => Navigator.pushNamed(context, '/history'),
+          onPressed: () => Navigator.pushNamed(context, '/userhistory'),
           child: const Text('See all'),
-        )
+        ),
       ],
     );
   }

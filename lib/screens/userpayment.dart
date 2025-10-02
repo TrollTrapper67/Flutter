@@ -57,9 +57,9 @@ class _PaymentPageState extends State<PaymentPage> {
 
   Future<void> _confirmPayment() async {
     if (_amountValue <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Enter an amount to pay')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Enter an amount to pay')));
       return;
     }
 
@@ -79,8 +79,14 @@ class _PaymentPageState extends State<PaymentPage> {
           'Current Balance: \$ ${_formatWithCommas(_currentBalance.toString())}',
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('No')),
-          ElevatedButton(onPressed: () => Navigator.of(ctx).pop(true), child: const Text('Yes, proceed')),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('No'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Yes, proceed'),
+          ),
         ],
       ),
     );
@@ -99,16 +105,23 @@ class _PaymentPageState extends State<PaymentPage> {
       builder: (ctx) {
         return AlertDialog(
           title: const Text('Balance paid successfully'),
-          content: Text('Your payment has been recorded.\n'
-              'Remaining Balance: \$ ${_formatWithCommas(_currentBalance.toString())}'),
-          actionsPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+          content: Text(
+            'Your payment has been recorded.\n'
+            'Remaining Balance: \$ ${_formatWithCommas(_currentBalance.toString())}',
+          ),
+          actionsPadding: const EdgeInsets.symmetric(
+            horizontal: 8,
+            vertical: 8,
+          ),
           actions: [
             Align(
               alignment: Alignment.bottomRight,
               child: ElevatedButton(
                 onPressed: () {
                   Navigator.of(ctx).pop();
-                  Navigator.of(ctx).pushNamedAndRemoveUntil('/home', (route) => false);
+                  Navigator.of(
+                    ctx,
+                  ).pushNamedAndRemoveUntil('/userDashboard', (route) => false);
                 },
                 child: const Text('OK'),
               ),
@@ -130,10 +143,16 @@ class _PaymentPageState extends State<PaymentPage> {
 
   @override
   Widget build(BuildContext context) {
-    final formattedAmount = _amountController.text.isEmpty ? '-' : '\$ ${_amountController.text}';
+    final formattedAmount = _amountController.text.isEmpty
+        ? '-'
+        : '\$ ${_amountController.text}';
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Payment'), centerTitle: true, elevation: 2),
+      appBar: AppBar(
+        title: const Text('Payment'),
+        centerTitle: true,
+        elevation: 2,
+      ),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -143,12 +162,18 @@ class _PaymentPageState extends State<PaymentPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Your Current Loan Balance',
-                      style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
+                  const Text(
+                    'Your Current Loan Balance',
+                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
+                  ),
                   const SizedBox(height: 8),
                   Text(
                     '\$ ${_formatWithCommas(_currentBalance.toString())}',
-                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.red),
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.red,
+                    ),
                   ),
                 ],
               ),
@@ -158,7 +183,10 @@ class _PaymentPageState extends State<PaymentPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('How much did you pay?', style: TextStyle(fontWeight: FontWeight.w600)),
+                  const Text(
+                    'How much did you pay?',
+                    style: TextStyle(fontWeight: FontWeight.w600),
+                  ),
                   const SizedBox(height: 8),
                   TextField(
                     controller: _amountController,
@@ -172,7 +200,10 @@ class _PaymentPageState extends State<PaymentPage> {
                     onChanged: _onAmountChanged,
                   ),
                   const SizedBox(height: 8),
-                  Text('Entered: $formattedAmount', style: const TextStyle(fontSize: 16)),
+                  Text(
+                    'Entered: $formattedAmount',
+                    style: const TextStyle(fontSize: 16),
+                  ),
                 ],
               ),
             ),
@@ -180,11 +211,17 @@ class _PaymentPageState extends State<PaymentPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Notes (optional)', style: TextStyle(fontWeight: FontWeight.w600)),
+                  const Text(
+                    'Notes (optional)',
+                    style: TextStyle(fontWeight: FontWeight.w600),
+                  ),
                   const SizedBox(height: 8),
                   TextField(
                     controller: _notesController,
-                    decoration: const InputDecoration(border: OutlineInputBorder(), hintText: 'e.g. partial payment'),
+                    decoration: const InputDecoration(
+                      border: OutlineInputBorder(),
+                      hintText: 'e.g. partial payment',
+                    ),
                     minLines: 1,
                     maxLines: 3,
                   ),
