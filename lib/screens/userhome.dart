@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter_project_final/screens/userloanstatus.dart';
+
 
 class HomeScreen extends StatelessWidget {
   final String? username;
@@ -199,7 +201,7 @@ class HomeScreen extends StatelessWidget {
                         'My Loans',
                         Colors.purple,
                         () {
-                          Navigator.pushReplacementNamed(context, '/userloanstatus'); // ← Changed to pushReplacement
+                          Navigator.pushReplacementNamed(context, '/userLoanStatus'); // ← Changed to pushReplacement
                         },
                       ),
                     ],
