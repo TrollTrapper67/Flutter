@@ -43,19 +43,44 @@ class HomeScreen extends StatelessWidget {
     }
 
     final fallbackName = username ?? routeUsername ?? "Guest";
+    final theme = Theme.of(context);
+    final textStyle = theme.textTheme;
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Home'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            tooltip: "Logout",
-            onPressed: () {
-              _confirmLogout(context);
-            },
-          ),
-        ],
+        backgroundColor: theme.primaryColor,
+        foregroundColor: theme.colorScheme.onPrimary,
+      ),
+      // Add a drawer for user navigation
+      drawer: Drawer(
+        child: ListView(
+          padding: EdgeInsets.zero,
+          children: [
+            DrawerHeader(
+              decoration: BoxDecoration(color: theme.primaryColor),
+              child: Text(
+                'User Menu',
+                style: textStyle.titleLarge?.copyWith(color: Colors.white),
+              ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.settings),
+              title: const Text('Settings'),
+              onTap: () {
+                // Navigate to Settings Page
+                Navigator.pop(context);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.logout),
+              title: const Text('Logout'),
+              onTap: () {
+                _confirmLogout(context);
+              },
+            ),
+          ],
+        ),
       ),
       body: FutureBuilder<String>(
         future: _getDisplayName(),
@@ -78,10 +103,6 @@ class HomeScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 20),
                 _buildActions(context),
-                const SizedBox(height: 20),
-                _buildHistorySection(context),
-                const SizedBox(height: 8),
-                Expanded(child: _buildRecentActivityList()),
               ],
             ),
           );
@@ -131,6 +152,10 @@ class HomeScreen extends StatelessWidget {
         _actionCard(Icons.history, 'View History', () {
           Navigator.pushNamed(context, '/userhistory');
         }),
+        const SizedBox(width: 8),
+        _actionCard(Icons.account_balance_wallet, 'My Loan', () {
+          Navigator.pushNamed(context, '/userloanstatus');
+        }),
       ],
     );
   }
@@ -154,38 +179,6 @@ class HomeScreen extends StatelessWidget {
           ),
         ),
       ),
-    );
-  }
-
-  Widget _buildHistorySection(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        const Text(
-          'History',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-        ),
-        TextButton(
-          onPressed: () => Navigator.pushNamed(context, '/userhistory'),
-          child: const Text('See all'),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildRecentActivityList() {
-    return ListView(
-      children: [
-        ListTile(
-          leading: const CircleAvatar(child: Icon(Icons.payments)),
-          title: const Text('No activity yet.'),
-          subtitle: const SizedBox(height: 6),
-          trailing: IconButton(
-            icon: const Icon(Icons.chevron_right),
-            onPressed: () {},
-          ),
-        ),
-      ],
     );
   }
 }

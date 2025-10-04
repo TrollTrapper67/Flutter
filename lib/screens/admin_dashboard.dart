@@ -118,30 +118,9 @@ class AdminDashboard extends StatelessWidget {
         'createdAt': FieldValue.serverTimestamp(),
       });
 
-      // Create test loan applications
-      await firestore.collection('loan_applications').add({
-        'userId': 'test-user',
-        'email': 'test@example.com',
-        'principal': 50000.0,
-        'months': 12,
-        'monthlyPayment': 4166.67,
-        'status': 'pending',
-        'createdAt': FieldValue.serverTimestamp(),
-      });
-
-      await firestore.collection('loan_applications').add({
-        'userId': 'test-user',
-        'email': 'test@example.com',
-        'principal': 75000.0,
-        'months': 24,
-        'monthlyPayment': 3125.0,
-        'status': 'approved',
-        'createdAt': FieldValue.serverTimestamp(),
-      });
-
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('✅ Test data created successfully!'),
+          content: Text('✅ Test user created successfully!'),
           backgroundColor: Colors.green,
         ),
       );
@@ -185,6 +164,14 @@ class AdminDashboard extends StatelessWidget {
               onTap: () {
                 // Navigate to User Management Page
                 Navigator.pop(context);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.history),
+              title: const Text('Admin History'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.pushNamed(context, '/adminHistory');
               },
             ),
             ListTile(
@@ -336,10 +323,11 @@ class AdminDashboard extends StatelessWidget {
                   // Use a GridView for key statistics cards
                   GridView.count(
                     crossAxisCount: 2,
-                    crossAxisSpacing: 16,
-                    mainAxisSpacing: 16,
+                    crossAxisSpacing: 12,
+                    mainAxisSpacing: 12,
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
+                    childAspectRatio: 1.5, // Make cards wider and shorter
                     children: [
                       StatCard(
                         icon: Icons.pending_actions,
@@ -461,12 +449,12 @@ class StatCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      elevation: 8.0,
-      shadowColor: color.withValues(alpha: 0.3),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      elevation: 4.0,
+      shadowColor: color.withValues(alpha: 0.2),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Container(
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(12),
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
@@ -477,34 +465,34 @@ class StatCard extends StatelessWidget {
           ),
         ),
         child: Padding(
-          padding: const EdgeInsets.all(20.0),
+          padding: const EdgeInsets.all(12.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Container(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
                   color: color.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(8),
                 ),
-                child: Icon(icon, size: 28, color: color),
+                child: Icon(icon, size: 20, color: color),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 8),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     value,
-                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.bold,
                       color: color,
                     ),
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 2),
                   Text(
                     label,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: Colors.grey[600],
                       fontWeight: FontWeight.w500,
                     ),

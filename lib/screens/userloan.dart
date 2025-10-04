@@ -183,6 +183,11 @@ class _LoanPageState extends State<LoanPage> {
         title: const Text('Loan'),
         centerTitle: true,
         elevation: 2,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () =>
+              Navigator.pushReplacementNamed(context, '/userDashboard'),
+        ),
       ),
       body: Stack(
         children: [
