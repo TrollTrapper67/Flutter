@@ -47,9 +47,8 @@ class _LoginScreenState extends State<LoginScreen> {
 
         if (user == null) throw Exception("Login failed");
 
-        Navigator.pushReplacementNamed(context, '/adminDashboard',
-            arguments: user.email);
-        return; // stop here, don’t check Firestore
+        Navigator.pushReplacementNamed(context, '/adminDashboard');
+        return; // stop here, don't check Firestore
       }
 
       // 🔑 Regular User/Admin via Firestore role
@@ -73,11 +72,9 @@ class _LoginScreenState extends State<LoginScreen> {
       final role = doc.data()?['role'] ?? 'user';
 
       if (role == 'admin') {
-        Navigator.pushReplacementNamed(context, '/adminDashboard',
-            arguments: user.email);
+        Navigator.pushReplacementNamed(context, '/adminDashboard');
       } else {
-        Navigator.pushReplacementNamed(context, '/userDashboard',
-            arguments: user.email);
+        Navigator.pushReplacementNamed(context, '/userDashboard');
       }
     } on FirebaseAuthException catch (e) {
       if (e.code == 'user-not-found') {
@@ -122,6 +119,8 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
         centerTitle: true,
         backgroundColor: Colors.green,
+        // Remove back button by setting automaticallyImplyLeading to false
+        automaticallyImplyLeading: false,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24.0),
@@ -185,7 +184,7 @@ class _LoginScreenState extends State<LoginScreen> {
               const SizedBox(height: 20),
               TextButton(
                 onPressed: () {
-                  Navigator.pushNamed(context, '/signup');
+                  Navigator.pushReplacementNamed(context, '/signup');
                 },
                 child: RichText(
                   text: TextSpan(

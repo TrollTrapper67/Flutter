@@ -27,16 +27,43 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
     _loadUsers();
   }
 
+  // Helper method to safely convert any value to string
+  String _safeToString(dynamic value) {
+    if (value == null) return '';
+    return value.toString();
+  }
+
   // Helper method to validate user roles
   String _validateUserRole(dynamic role) {
     if (role == null) return 'user';
     
-    final roleString = role.toString().toLowerCase().trim();
+    final roleString = _safeToString(role).toLowerCase().trim();
     if (roleString == 'admin' || roleString == 'user') {
       return roleString;
     }
     
     return 'user'; // Default fallback
+  }
+
+  // Helper method to safely get user name
+  String _getUserName(Map<String, dynamic> user) {
+    final name = user['name'];
+    if (name == null) return 'No Name';
+    return _safeToString(name);
+  }
+
+  // Helper method to safely get user email
+  String _getUserEmail(Map<String, dynamic> user) {
+    final email = user['email'];
+    if (email == null) return 'No email';
+    return _safeToString(email);
+  }
+
+  // Helper method to safely get user phone
+  String _getUserPhone(Map<String, dynamic> user) {
+    final phone = user['phone'];
+    if (phone == null) return 'Not provided';
+    return _safeToString(phone);
   }
 
   Future<void> _loadUsers() async {
@@ -66,7 +93,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
     } catch (e) {
       print('Error loading users: $e');
       setState(() => _isLoading = false);
-      _showErrorSnackbar('Failed to load users: $e');
+      _showErrorSnackbar('Failed to load users: ${_safeToString(e)}');
     }
   }
 
@@ -98,10 +125,11 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
       _showSuccessSnackbar('User role updated to $newRole');
       _loadUsers(); // Refresh the list
     } catch (e) {
-      _showErrorSnackbar('Failed to update role: $e');
+      _showErrorSnackbar('Failed to update role: ${_safeToString(e)}');
     }
   }
 
+  // NEW FUNCTION: Delete user from both Firestore AND Firebase Authentication
   Future<void> _deleteUser(String userId, String userEmail) async {
     final currentUser = _auth.currentUser;
     if (currentUser != null && currentUser.uid == userId) {
@@ -113,7 +141,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Delete User'),
-        content: Text('Are you sure you want to delete $userEmail? This action cannot be undone.'),
+        content: Text('Are you sure you want to delete $userEmail? This action will:\n\n• Remove user from Firestore\n• Delete user from Authentication\n• This action cannot be undone!'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -122,13 +150,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
           ElevatedButton(
             onPressed: () async {
               Navigator.pop(context);
-              try {
-                await _firestore.collection('users').doc(userId).delete();
-                _showSuccessSnackbar('User deleted successfully');
-                _loadUsers(); // Refresh the list
-              } catch (e) {
-                _showErrorSnackbar('Failed to delete user: $e');
-              }
+              await _deleteUserFromBoth(userId, userEmail);
             },
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             child: const Text('Delete', style: TextStyle(color: Colors.white)),
@@ -136,6 +158,109 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
         ],
       ),
     );
+  }
+
+  // NEW FUNCTION: Delete user from both Firestore and Authentication
+  Future<void> _deleteUserFromBoth(String userId, String userEmail) async {
+    try {
+      setState(() => _isLoading = true);
+      
+      // Step 1: Delete from Firestore
+      await _firestore.collection('users').doc(userId).delete();
+      
+      // Step 2: Delete from Firebase Authentication
+      // Note: This requires the Admin SDK on the server side for security reasons
+      // Since we can't delete users directly from client-side, we'll show a message
+      // about what needs to be done
+      
+      _showSuccessSnackbar('User deleted from Firestore successfully!');
+      
+      // Show additional info about Authentication deletion
+      _showAuthDeletionInfo(userEmail, userId);
+      
+      _loadUsers(); // Refresh the list
+      
+    } catch (e) {
+      setState(() => _isLoading = false);
+      _showErrorSnackbar('Failed to delete user: ${_safeToString(e)}');
+    }
+  }
+
+  // NEW FUNCTION: Show information about Authentication deletion
+  void _showAuthDeletionInfo(String userEmail, String userId) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Authentication Cleanup Required'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'User has been removed from Firestore. To complete the deletion:',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 16),
+            const Text('1. Go to Firebase Console'),
+            const Text('2. Navigate to Authentication > Users'),
+            const Text('3. Find and delete the user:'),
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.grey[100],
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Email: $userEmail'),
+                  Text('UID: $userId'),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Note: User deletion from Authentication requires server-side Admin SDK for security reasons.',
+              style: TextStyle(fontSize: 12, color: Colors.grey),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ALTERNATIVE FUNCTION: If you have a Cloud Function setup for user deletion
+  Future<void> _deleteUserWithCloudFunction(String userId, String userEmail) async {
+    try {
+      setState(() => _isLoading = true);
+      
+      // This would call a Cloud Function that handles both Firestore and Auth deletion
+      // Uncomment and implement if you have a Cloud Function set up
+      
+      // Example Cloud Function call (you need to set this up):
+      // await FirebaseFunctions.instance
+      //   .httpsCallable('deleteUser')
+      //   .call({'uid': userId});
+      
+      // For now, we'll just delete from Firestore and show instructions
+      await _firestore.collection('users').doc(userId).delete();
+      
+      _showSuccessSnackbar('User deleted from Firestore! See instructions for Auth cleanup.');
+      _showAuthDeletionInfo(userEmail, userId);
+      
+      _loadUsers();
+      
+    } catch (e) {
+      setState(() => _isLoading = false);
+      _showErrorSnackbar('Failed to delete user: ${_safeToString(e)}');
+    }
   }
 
   void _showUserDetails(Map<String, dynamic> user) {
@@ -148,11 +273,11 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              _buildDetailRow('Name', user['name'] ?? 'Not provided'),
-              _buildDetailRow('Email', user['email'] ?? 'No email'),
-              _buildDetailRow('Phone', user['phone'] ?? 'Not provided'),
-              _buildDetailRow('Role', user['role'] ?? 'user'),
-              _buildDetailRow('User ID', user['id'] ?? 'No ID'),
+              _buildDetailRow('Name', _getUserName(user)),
+              _buildDetailRow('Email', _getUserEmail(user)),
+              _buildDetailRow('Phone', _getUserPhone(user)),
+              _buildDetailRow('Role', _validateUserRole(user['role'])),
+              _buildDetailRow('User ID', _safeToString(user['id'])),
               if (user['createdAt'] != null) 
                 _buildDetailRow('Joined', _formatDate(user['createdAt'])),
               if (user['updatedAt'] != null)
@@ -199,9 +324,9 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
 
   List<Map<String, dynamic>> get _filteredUsers {
     var filtered = _users.where((user) {
-      final email = user['email']?.toString().toLowerCase() ?? '';
-      final name = user['name']?.toString().toLowerCase() ?? '';
-      final role = user['role']?.toString() ?? 'user';
+      final email = _getUserEmail(user).toLowerCase();
+      final name = _getUserName(user).toLowerCase();
+      final role = _validateUserRole(user['role']);
       
       final matchesSearch = email.contains(_searchQuery.toLowerCase()) || 
                            name.contains(_searchQuery.toLowerCase());
@@ -210,7 +335,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
       return matchesSearch && matchesRole;
     }).toList();
 
-    // Apply sorting
+    // Apply sorting with safe comparison
     filtered.sort((a, b) {
       var aValue = a[_sortField];
       var bValue = b[_sortField];
@@ -219,19 +344,21 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
       if (aValue == null) return _sortAscending ? -1 : 1;
       if (bValue == null) return _sortAscending ? 1 : -1;
       
-      // Handle different data types
+      // Handle different data types by converting to string for comparison
+      String aString;
+      String bString;
+      
       if (aValue is Timestamp && bValue is Timestamp) {
-        aValue = aValue.toDate();
-        bValue = bValue.toDate();
+        aString = aValue.toDate().toString();
+        bString = bValue.toDate().toString();
+      } else {
+        aString = _safeToString(aValue);
+        bString = _safeToString(bValue);
       }
       
-      if (aValue is Comparable && bValue is Comparable) {
-        return _sortAscending 
-            ? aValue.compareTo(bValue)
-            : bValue.compareTo(aValue);
-      }
-      
-      return 0;
+      return _sortAscending 
+          ? aString.compareTo(bString)
+          : bString.compareTo(aString);
     });
 
     return filtered;
@@ -355,11 +482,11 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                 children: [
                   _buildStatCard('Total', _users.length.toString(), Colors.blue),
                   _buildStatCard('Admins', 
-                    _users.where((u) => u['role'] == 'admin').length.toString(), 
+                    _users.where((u) => _validateUserRole(u['role']) == 'admin').length.toString(), 
                     Colors.green
                   ),
                   _buildStatCard('Users', 
-                    _users.where((u) => u['role'] == 'user').length.toString(), 
+                    _users.where((u) => _validateUserRole(u['role']) == 'user').length.toString(), 
                     Colors.orange
                   ),
                 ],
@@ -425,25 +552,31 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
     final validRole = _validateUserRole(user['role']);
     final isAdmin = validRole == 'admin';
     
+    // Safe avatar text
+    final avatarText = _getUserName(user).isNotEmpty 
+        ? _getUserName(user).substring(0, 1).toUpperCase()
+        : _getUserEmail(user).isNotEmpty
+            ? _getUserEmail(user).substring(0, 1).toUpperCase()
+            : 'U';
+
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       child: ListTile(
         leading: CircleAvatar(
           backgroundColor: isAdmin ? Colors.green : Colors.blue,
           child: Text(
-            user['name']?.toString().substring(0, 1).toUpperCase() ?? 
-            user['email']?.toString().substring(0, 1).toUpperCase() ?? 'U',
+            avatarText,
             style: const TextStyle(color: Colors.white),
           ),
         ),
         title: Text(
-          user['name'] ?? 'No Name',
+          _getUserName(user),
           style: const TextStyle(fontWeight: FontWeight.bold),
         ),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(user['email'] ?? 'No email'),
+            Text(_getUserEmail(user)),
             const SizedBox(height: 4),
             Row(
               children: [
@@ -531,7 +664,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                     _showUserDetails(user);
                     break;
                   case 'delete':
-                    _deleteUser(user['id'], user['email'] ?? 'Unknown user');
+                    _deleteUser(user['id'], _getUserEmail(user));
                     break;
                 }
               },

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter_project_final/screens/loanapplications.dart';
 import './user_management.dart';
 
 class AdminDashboard extends StatelessWidget {
@@ -22,11 +23,11 @@ class AdminDashboard extends StatelessWidget {
   // Helper method to format currency
   String _formatCurrency(double amount) {
     if (amount >= 1000000) {
-      return '₱${(amount / 1000000).toStringAsFixed(1)}M';
+      return '\$${(amount / 1000000).toStringAsFixed(1)}M';
     } else if (amount >= 1000) {
-      return '₱${(amount / 1000).toStringAsFixed(1)}k';
+      return '\$${(amount / 1000).toStringAsFixed(1)}k';
     } else {
-      return '₱${amount.toStringAsFixed(0)}';
+      return '\$${amount.toStringAsFixed(0)}';
     }
   }
 
@@ -146,6 +147,16 @@ class AdminDashboard extends StatelessWidget {
         title: const Text('Admin Dashboard'),
         backgroundColor: theme.primaryColor,
         foregroundColor: theme.colorScheme.onPrimary,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: () {
+              // This will trigger the StreamBuilder to refresh
+              (context as Element).markNeedsBuild();
+            },
+            tooltip: 'Refresh Data',
+          ),
+        ],
       ),
       // Add a drawer for scalable navigation
       drawer: Drawer(
@@ -165,7 +176,21 @@ class AdminDashboard extends StatelessWidget {
               onTap: () {
                 // Navigate to User Management Page
                 Navigator.pop(context);
-                Navigator.pushNamed(context, '/userManagement');
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const UserManagementScreen()),
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.assignment),
+              title: const Text('Loan Applications'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const LoanApplicationsPage()),
+                );
               },
             ),
             ListTile(
@@ -173,17 +198,29 @@ class AdminDashboard extends StatelessWidget {
               title: const Text('Admin History'),
               onTap: () {
                 Navigator.pop(context);
-                Navigator.pushNamed(context, '/adminHistory');
+                // Navigate to admin history page
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Admin History - Coming Soon!'),
+                    backgroundColor: Colors.blue,
+                  ),
+                );
               },
             ),
             ListTile(
               leading: const Icon(Icons.settings),
               title: const Text('Settings'),
               onTap: () {
-                // Navigate to Settings Page
                 Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Settings - Coming Soon!'),
+                    backgroundColor: Colors.blue,
+                  ),
+                );
               },
             ),
+            const Divider(),
             ListTile(
               leading: const Icon(Icons.logout),
               title: const Text('Logout'),
@@ -197,221 +234,246 @@ class AdminDashboard extends StatelessWidget {
       body: RefreshIndicator(
         onRefresh: () async {
           // Force refresh by rebuilding the widget
-          // The StreamBuilder will automatically update
           await Future.delayed(const Duration(milliseconds: 500));
         },
-        child: StreamBuilder<List<QuerySnapshot>>(
-          stream: _getCombinedStreams(),
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    CircularProgressIndicator(),
-                    SizedBox(height: 16),
-                    Text('Loading dashboard data...'),
-                  ],
-                ),
-              );
-            }
+        child: StreamBuilder<QuerySnapshot>(
+          // Use a simpler stream for loan applications only
+          stream: FirebaseFirestore.instance
+              .collection('loan_applications')
+              .snapshots(),
+          builder: (context, loansSnapshot) {
+            // Use FutureBuilder for users since it doesn't change as frequently
+            return FutureBuilder<QuerySnapshot>(
+              future: FirebaseFirestore.instance.collection('users').get(),
+              builder: (context, usersSnapshot) {
+                // Combined loading state
+                if (loansSnapshot.connectionState == ConnectionState.waiting ||
+                    usersSnapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        CircularProgressIndicator(),
+                        SizedBox(height: 16),
+                        Text('Loading dashboard data...'),
+                      ],
+                    ),
+                  );
+                }
 
-            if (snapshot.hasError) {
-              return Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.error, size: 64, color: Colors.red[300]),
-                      const SizedBox(height: 16),
-                      Text(
-                        'Error loading dashboard data',
-                        style: textStyle.titleMedium,
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 8),
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: Colors.red[50],
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.red[200]!),
-                        ),
-                        child: Text(
-                          'Error: ${snapshot.error}',
-                          style: textStyle.bodySmall?.copyWith(
-                            color: Colors.red[800],
-                            fontFamily: 'monospace',
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'Possible causes:\n• Firebase collections don\'t exist yet\n• Firestore rules are blocking access\n• Network connection issues',
-                        style: textStyle.bodyMedium?.copyWith(
-                          color: Colors.grey[600],
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 16),
-                      Row(
+                // Combined error state
+                if (loansSnapshot.hasError || usersSnapshot.hasError) {
+                  final error = loansSnapshot.error ?? usersSnapshot.error;
+                  return Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          ElevatedButton.icon(
-                            onPressed: () {
-                              // Trigger a rebuild to retry
-                              (context as Element).markNeedsBuild();
-                            },
-                            icon: const Icon(Icons.refresh),
-                            label: const Text('Retry'),
+                          Icon(Icons.error, size: 64, color: Colors.red[300]),
+                          const SizedBox(height: 16),
+                          Text(
+                            'Error loading dashboard data',
+                            style: textStyle.titleMedium,
+                            textAlign: TextAlign.center,
                           ),
-                          const SizedBox(width: 12),
-                          OutlinedButton.icon(
-                            onPressed: () => _showFirebaseHelp(context),
-                            icon: const Icon(Icons.help),
-                            label: const Text('Help'),
+                          const SizedBox(height: 8),
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.red[50],
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: Colors.red[200]!),
+                            ),
+                            child: Text(
+                              'Error: $error',
+                              style: textStyle.bodySmall?.copyWith(
+                                color: Colors.red[800],
+                                fontFamily: 'monospace',
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            'Possible causes:\n• Firebase collections don\'t exist yet\n• Firestore rules are blocking access\n• Network connection issues',
+                            style: textStyle.bodyMedium?.copyWith(
+                              color: Colors.grey[600],
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 16),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              ElevatedButton.icon(
+                                onPressed: () {
+                                  // Trigger a rebuild to retry
+                                  (context as Element).markNeedsBuild();
+                                },
+                                icon: const Icon(Icons.refresh),
+                                label: const Text('Retry'),
+                              ),
+                              const SizedBox(width: 12),
+                              OutlinedButton.icon(
+                                onPressed: () => _showFirebaseHelp(context),
+                                icon: const Icon(Icons.help),
+                                label: const Text('Help'),
+                              ),
+                            ],
                           ),
                         ],
                       ),
-                    ],
-                  ),
-                ),
-              );
-            }
-
-            if (!snapshot.hasData || snapshot.data!.length < 2) {
-              return const Center(child: CircularProgressIndicator());
-            }
-
-            final loansSnapshot = snapshot.data![0];
-            final usersSnapshot = snapshot.data![1];
-
-            // Calculate statistics
-            final allLoans = loansSnapshot.docs;
-            final pendingLoans = allLoans.where((doc) {
-              final data = doc.data() as Map<String, dynamic>;
-              return (data['status'] ?? 'pending') == 'pending';
-            }).toList();
-
-            final approvedLoans = allLoans.where((doc) {
-              final data = doc.data() as Map<String, dynamic>;
-              return (data['status'] ?? 'pending') == 'approved';
-            }).toList();
-
-            final totalUsers = usersSnapshot.docs.length;
-            final revenue = _calculateRevenue(approvedLoans);
-
-            return SingleChildScrollView(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Welcome, Admin! 👋',
-                    style: textStyle.headlineMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Here is a summary of the system status.',
-                    style: textStyle.titleMedium?.copyWith(
-                      color: Colors.grey[600],
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  // Use a GridView for key statistics cards
-                  GridView.count(
-                    crossAxisCount: 2,
-                    crossAxisSpacing: 12,
-                    mainAxisSpacing: 12,
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    childAspectRatio: 1.5, // Make cards wider and shorter
+                  );
+                }
+
+                // Check if data exists
+                if (!loansSnapshot.hasData || !usersSnapshot.hasData) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                final allLoans = loansSnapshot.data!.docs;
+                final allUsers = usersSnapshot.data!.docs;
+
+                // Calculate statistics
+                final pendingLoans = allLoans.where((doc) {
+                  final data = doc.data() as Map<String, dynamic>;
+                  return (data['status'] ?? 'pending') == 'pending';
+                }).toList();
+
+                final approvedLoans = allLoans.where((doc) {
+                  final data = doc.data() as Map<String, dynamic>;
+                  return (data['status'] ?? 'pending') == 'approved';
+                }).toList();
+
+                final rejectedLoans = allLoans.where((doc) {
+                  final data = doc.data() as Map<String, dynamic>;
+                  return (data['status'] ?? 'pending') == 'rejected';
+                }).toList();
+
+                final totalUsers = allUsers.length;
+                final revenue = _calculateRevenue(approvedLoans);
+
+                return SingleChildScrollView(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      StatCard(
-                        icon: Icons.pending_actions,
-                        label: 'Pending Loans',
-                        value: '${pendingLoans.length}',
-                        color: Colors.orange,
+                      // Welcome Section
+                      Card(
+                        elevation: 4,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(20.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Welcome, Admin! 👋',
+                                style: textStyle.headlineMedium?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                'Here is a summary of the system status.',
+                                style: textStyle.titleMedium?.copyWith(
+                                  color: Colors.grey[600],
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Row(
+                                children: [
+                                  Icon(Icons.circle, size: 8, color: Colors.green),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    'Live updates enabled',
+                                    style: textStyle.bodySmall?.copyWith(
+                                      color: Colors.green,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
-                      StatCard(
-                        icon: Icons.check_circle,
-                        label: 'Approved Loans',
-                        value: '${approvedLoans.length}',
-                        color: Colors.green,
+                      const SizedBox(height: 24),
+                      
+                      // Statistics Grid
+                      Text(
+                        'Live Overview',
+                        style: textStyle.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
-                      StatCard(
-                        icon: Icons.people,
-                        label: 'Total Users',
-                        value: '$totalUsers',
-                        color: Colors.blue,
+                      const SizedBox(height: 16),
+                      GridView.count(
+                        crossAxisCount: 2,
+                        crossAxisSpacing: 12,
+                        mainAxisSpacing: 12,
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        childAspectRatio: 1.5,
+                        children: [
+                          StatCard(
+                            icon: Icons.pending_actions,
+                            label: 'Pending Loans',
+                            value: '${pendingLoans.length}',
+                            color: Colors.orange,
+                          ),
+                          StatCard(
+                            icon: Icons.check_circle,
+                            label: 'Approved Loans',
+                            value: '${approvedLoans.length}',
+                            color: Colors.green,
+                          ),
+                          StatCard(
+                            icon: Icons.people,
+                            label: 'Total Users',
+                            value: '$totalUsers',
+                            color: Colors.blue,
+                          ),
+                          StatCard(
+                            icon: Icons.attach_money,
+                            label: 'Total Revenue',
+                            value: _formatCurrency(revenue),
+                            color: Colors.purple,
+                          ),
+                        ],
                       ),
-                      StatCard(
-                        icon: Icons.attach_money,
-                        label: 'Total Revenue',
-                        value: _formatCurrency(revenue),
-                        color: Colors.purple,
+                      const SizedBox(height: 24),
+                      
+                      // System Status
+                      Text(
+                        'System Status',
+                        style: textStyle.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
+                      const SizedBox(height: 16),
+                      Card(
+                        child: Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _buildStatusItem('Total Loans', allLoans.length.toString(), Icons.list_alt),
+                              _buildStatusItem('Pending Review', pendingLoans.length.toString(), Icons.pending),
+                              _buildStatusItem('Approved', approvedLoans.length.toString(), Icons.verified),
+                              _buildStatusItem('Rejected', rejectedLoans.length.toString(), Icons.cancel),
+                            ],
+                          ),
+                        ),
+                      ),
+                      // Quick Actions section and cards have been removed
                     ],
                   ),
-                  const SizedBox(height: 24),
-                  Text(
-                    'Quick Actions',
-                    style: textStyle.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  // Action buttons using ListTile inside a Card for better UI
-                  Card(
-                    elevation: 6.0,
-                    shadowColor: Colors.grey.withValues(alpha: 0.2),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    clipBehavior: Clip.antiAlias,
-                    child: Column(
-                      children: [
-                        ActionTile(
-                          icon: Icons.assignment,
-                          title: 'Check Loan Applications',
-                          subtitle: 'Review and approve new requests',
-                          color: Colors.blue,
-                          onTap: () {
-                            Navigator.pushNamed(
-                              context,
-                              '/LoanApplicationsPage',
-                            );
-                          },
-                        ),
-                        Divider(
-                          height: 1,
-                          color: Colors.grey[300],
-                          thickness: 0.5,
-                        ),
-                        ActionTile(
-                          icon: Icons.bar_chart,
-                          title: 'View Reports',
-                          subtitle: 'See analytics and performance data',
-                          color: Colors.green,
-                          onTap: () {
-                            // Navigate to reports page
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Reports feature coming soon!'),
-                                backgroundColor: Colors.orange,
-                              ),
-                            );
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
+                );
+              },
             );
           },
         ),
@@ -419,17 +481,23 @@ class AdminDashboard extends StatelessWidget {
     );
   }
 
-  // Combine multiple Firestore streams
-  Stream<List<QuerySnapshot>> _getCombinedStreams() async* {
-    await for (final loansSnapshot
-        in FirebaseFirestore.instance
-            .collection('loan_applications')
-            .snapshots()) {
-      final usersSnapshot = await FirebaseFirestore.instance
-          .collection('users')
-          .get();
-      yield [loansSnapshot, usersSnapshot];
-    }
+  Widget _buildStatusItem(String label, String value, IconData icon) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Row(
+        children: [
+          Icon(icon, size: 20, color: Colors.grey[600]),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(label, style: const TextStyle(fontSize: 16)),
+          ),
+          Text(
+            value,
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          ),
+        ],
+      ),
+    );
   }
 }
 
@@ -452,7 +520,7 @@ class StatCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       elevation: 4.0,
-      shadowColor: color.withValues(alpha: 0.2),
+      shadowColor: color.withOpacity(0.2),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Container(
         decoration: BoxDecoration(
@@ -461,8 +529,8 @@ class StatCard extends StatelessWidget {
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              color.withValues(alpha: 0.1),
-              color.withValues(alpha: 0.05),
+              color.withOpacity(0.1),
+              color.withOpacity(0.05),
             ],
           ),
         ),
@@ -475,7 +543,7 @@ class StatCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.15),
+                  color: color.withOpacity(0.15),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Icon(icon, size: 20, color: color),
@@ -504,65 +572,6 @@ class StatCard extends StatelessWidget {
             ],
           ),
         ),
-      ),
-    );
-  }
-}
-
-// Reusable widget for action list tiles
-class ActionTile extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final Color color;
-  final VoidCallback onTap;
-
-  const ActionTile({
-    super.key,
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.color,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.centerLeft,
-          end: Alignment.centerRight,
-          colors: [color.withValues(alpha: 0.05), Colors.transparent],
-        ),
-      ),
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-        leading: Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.15),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Icon(icon, color: color, size: 24),
-        ),
-        title: Text(
-          title,
-          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
-        ),
-        subtitle: Text(
-          subtitle,
-          style: TextStyle(color: Colors.grey[600], fontSize: 14),
-        ),
-        trailing: Container(
-          padding: const EdgeInsets.all(4),
-          decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(6),
-          ),
-          child: Icon(Icons.chevron_right, color: color, size: 20),
-        ),
-        onTap: onTap,
       ),
     );
   }
