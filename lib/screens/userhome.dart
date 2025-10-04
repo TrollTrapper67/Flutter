@@ -32,65 +32,6 @@ class HomeScreen extends StatelessWidget {
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final routeArg = ModalRoute.of(context)?.settings.arguments;
-    String? routeUsername;
-    if (routeArg is String && routeArg.isNotEmpty) {
-      routeUsername = routeArg;
-    } else if (routeArg != null) {
-      routeUsername = routeArg.toString();
-    }
-
-    final fallbackName = username ?? routeUsername ?? "Guest";
-
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Home'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            tooltip: "Logout",
-            onPressed: () {
-              _confirmLogout(context);
-            },
-          ),
-        ],
-      ),
-      body: FutureBuilder<String>(
-        future: _getDisplayName(),
-        builder: (context, snapshot) {
-          final displayName = snapshot.data ?? fallbackName;
-
-          return Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              children: [
-                Row(
-                  children: [
-                    const CircleAvatar(
-                      radius: 28,
-                      child: Icon(Icons.person),
-                    ),
-                    const SizedBox(width: 12),
-                    Text('Welcome, $displayName',
-                        style: Theme.of(context).textTheme.titleMedium),
-                  ],
-                ),
-                const SizedBox(height: 20),
-                _buildActions(context),
-                const SizedBox(height: 20),
-                _buildHistorySection(context),
-                const SizedBox(height: 8),
-                Expanded(child: _buildRecentActivityList()),
-              ],
-            ),
-          );
-        },
-      ),
-    );
-  }
-
   // 🔹 Confirmation Dialog for Logout
   void _confirmLogout(BuildContext context) {
     showDialog(
@@ -106,9 +47,12 @@ class HomeScreen extends StatelessWidget {
             child: const Text("Cancel"),
           ),
           ElevatedButton(
-            onPressed: () {
+            onPressed: () async {
               Navigator.of(ctx).pop(); // close dialog
-              Navigator.pushReplacementNamed(context, '/login');
+              await FirebaseAuth.instance.signOut();
+              if (context.mounted) {
+                Navigator.pushReplacementNamed(context, '/login');
+              }
             },
             child: const Text("Logout"),
           ),
@@ -117,74 +61,203 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildActions(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        _actionCard(Icons.account_balance, 'Loan', () {
-          Navigator.pushNamed(context, '/userloan');
-        }),
-        const SizedBox(width: 8),
-        _actionCard(Icons.payment, 'Pay', () {
-          Navigator.pushNamed(context, '/userpayment');
-        }),
-        const SizedBox(width: 8),
-        _actionCard(Icons.history, 'View History', () {
-          Navigator.pushNamed(context, '/userhistory');
-        }),
-      ],
-    );
-  }
+  @override
+  Widget build(BuildContext context) {
+    final routeArg = ModalRoute.of(context)?.settings.arguments;
+    String? routeUsername;
+    if (routeArg is String && routeArg.isNotEmpty) {
+      routeUsername = routeArg;
+    } else if (routeArg != null) {
+      routeUsername = routeArg.toString();
+    }
 
-  Widget _actionCard(IconData icon, String label, VoidCallback onTap) {
-    return Expanded(
-      child: Card(
-        elevation: 2,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        child: InkWell(
-          onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+    final fallbackName = username ?? routeUsername ?? "Guest";
+    final theme = Theme.of(context);
+    final textStyle = theme.textTheme;
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Home'),
+        backgroundColor: theme.primaryColor,
+        foregroundColor: theme.colorScheme.onPrimary,
+        automaticallyImplyLeading: false, // ← This removes the back button
+        actions: [
+          // Settings Icon Button
+          IconButton(
+            icon: const Icon(Icons.settings),
+            tooltip: 'Settings',
+            onPressed: () {
+              // Navigate to Settings Page
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Settings - Coming Soon!'),
+                  backgroundColor: Colors.blue,
+                ),
+              );
+            },
+          ),
+          // Logout Icon Button
+          IconButton(
+            icon: const Icon(Icons.logout),
+            tooltip: 'Logout',
+            onPressed: () {
+              _confirmLogout(context);
+            },
+          ),
+        ],
+      ),
+      body: FutureBuilder<String>(
+        future: _getDisplayName(),
+        builder: (context, snapshot) {
+          final displayName = snapshot.data ?? fallbackName;
+
+          return Padding(
+            padding: const EdgeInsets.all(16.0),
             child: Column(
               children: [
-                Icon(icon, size: 28),
-                const SizedBox(height: 8),
-                Text(label),
+                // Welcome Section
+                Card(
+                  elevation: 4,
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Row(
+                      children: [
+                        const CircleAvatar(
+                          radius: 28,
+                          backgroundColor: Colors.blue,
+                          child: Icon(Icons.person, color: Colors.white, size: 30),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Welcome back!',
+                                style: textStyle.bodyMedium?.copyWith(
+                                  color: Colors.grey[600],
+                                ),
+                              ),
+                              Text(
+                                displayName,
+                                style: textStyle.titleLarge?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 32),
+                
+                // Quick Actions Title
+                Text(
+                  'Quick Actions',
+                  style: textStyle.titleLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                
+                // Action Cards
+                Expanded(
+                  child: GridView.count(
+                    crossAxisCount: 2,
+                    crossAxisSpacing: 16,
+                    mainAxisSpacing: 16,
+                    childAspectRatio: 1.2,
+                    children: [
+                      _buildActionCard(
+                        Icons.account_balance,
+                        'Apply for Loan',
+                        Colors.blue,
+                        () {
+                          Navigator.pushReplacementNamed(context, '/userloan'); // ← Changed to pushReplacement
+                        },
+                      ),
+                      _buildActionCard(
+                        Icons.payment,
+                        'Make Payment',
+                        Colors.green,
+                        () {
+                          Navigator.pushReplacementNamed(context, '/userpayment'); // ← Changed to pushReplacement
+                        },
+                      ),
+                      _buildActionCard(
+                        Icons.history,
+                        'View History',
+                        Colors.orange,
+                        () {
+                          Navigator.pushReplacementNamed(context, '/userhistory'); // ← Changed to pushReplacement
+                        },
+                      ),
+                      _buildActionCard(
+                        Icons.account_balance_wallet,
+                        'My Loans',
+                        Colors.purple,
+                        () {
+                          Navigator.pushReplacementNamed(context, '/userloanstatus'); // ← Changed to pushReplacement
+                        },
+                      ),
+                    ],
+                  ),
+                ),
               ],
             ),
-          ),
-        ),
+          );
+        },
       ),
     );
   }
 
-  Widget _buildHistorySection(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        const Text('History',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
-        TextButton(
-          onPressed: () => Navigator.pushNamed(context, '/history'),
-          child: const Text('See all'),
-        )
-      ],
-    );
-  }
-
-  Widget _buildRecentActivityList() {
-    return ListView(
-      children: [
-        ListTile(
-          leading: const CircleAvatar(child: Icon(Icons.payments)),
-          title: const Text('No activity yet.'),
-          subtitle: const SizedBox(height: 6),
-          trailing: IconButton(
-            icon: const Icon(Icons.chevron_right),
-            onPressed: () {},
+  Widget _buildActionCard(IconData icon, String label, Color color, VoidCallback onTap) {
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                color.withOpacity(0.1),
+                color.withOpacity(0.05),
+              ],
+            ),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.15),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(icon, size: 32, color: color),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                label,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14,
+                ),
+              ),
+            ],
           ),
         ),
-      ],
+      ),
     );
   }
 }
