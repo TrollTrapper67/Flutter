@@ -4,9 +4,11 @@ import 'package:flutter_project_final/auth/login.dart';
 import 'package:flutter_project_final/auth/signup.dart';
 import 'package:flutter_project_final/screens/admin_dashboard.dart';
 import 'package:flutter_project_final/screens/loanapplications.dart';
+import 'package:flutter_project_final/screens/user_credibility.dart';
 import 'package:flutter_project_final/screens/user_management.dart';
 import 'package:flutter_project_final/screens/userhistory.dart';
 import 'package:flutter_project_final/screens/userhome.dart';
+import 'package:flutter_project_final/screens/userinfo.dart';
 import 'package:flutter_project_final/screens/userloan.dart';
 import 'package:flutter_project_final/screens/userpayment.dart';
 import 'package:flutter_project_final/screens/admin_history.dart';
@@ -62,6 +64,8 @@ class MyApp extends StatelessWidget {
         '/adminHistory': (_) => const AdminHistoryPage(),
         '/userLoanStatus': (_) => const UserLoanStatusPage(),
         '/userManagement': (_) => const UserManagementScreen(),
+        '/userInfo': (context) => const UserInfoScreen(),
+        '/user-credibility': (context) => const UserCredibilityScreen(),
       },
       onGenerateRoute: (settings) {
         // Handle navigation for pages that might be accessed directly via URL
@@ -86,6 +90,12 @@ class MyApp extends StatelessWidget {
             return MaterialPageRoute(
               builder: (_) => const UserLoanStatusPage(),
             );
+          case '/userInfo':
+            return MaterialPageRoute(
+              builder: (_) => const UserInfoScreen());
+          case '/user-credibility':
+            return MaterialPageRoute(
+              builder: (_) => const UserCredibilityScreen());
           default:
             return null;
         }

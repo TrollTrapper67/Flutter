@@ -65,13 +65,36 @@ class LoanApplicationsPage extends StatelessWidget {
                 margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 child: ListTile(
                   leading: const Icon(Icons.account_circle, size: 40),
-                  title: Text("User: ${data['email'] ?? 'Unknown'}"),
+                  title: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Name first
+                      Text(
+                        "Name: ${data['name'] ?? 'Unknown'}",
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      // Email second
+                      Text(
+                        "Email: ${data['email'] ?? 'Unknown'}",
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                    ],
+                  ),
                   subtitle: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      const SizedBox(height: 8),
                       Text("Principal: ₱${data['principal']}"),
                       Text("Months: ${data['months']}"),
                       Text("Monthly Payment: ₱${data['monthlyPayment']}"),
+                      const SizedBox(height: 4),
                       Text(
                         "Status: $status",
                         style: TextStyle(
@@ -138,6 +161,7 @@ class LoanApplicationsPage extends StatelessWidget {
               // Create admin log entry
               await FirebaseFirestore.instance.collection("admin_logs").add({
                 "action": newStatus,
+                "userName": data['name'] ?? 'Unknown',
                 "userEmail": data['email'] ?? 'Unknown',
                 "principal": data['principal'] ?? 0.0,
                 "months": data['months'] ?? 0,
@@ -161,6 +185,7 @@ class LoanApplicationsPage extends StatelessWidget {
                       .collection("user_loans")
                       .add({
                         "userId": data['userId'] ?? '',
+                        "userName": data['name'] ?? 'Unknown',
                         "userEmail": data['email'] ?? 'Unknown',
                         "principal": data['principal'] ?? 0.0,
                         "remainingBalance": data['principal'] ?? 0.0,

@@ -1,3 +1,5 @@
+// ignore_for_file: unused_element
+
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -66,51 +68,97 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
     return _safeToString(phone);
   }
 
+  // Helper method to get credibility score
+  int _getCredibilityScore(Map<String, dynamic> user) {
+    final score = user['credibilityScore'];
+    if (score is int) return score;
+    if (score is double) return score.toInt();
+    if (score is String) return int.tryParse(score) ?? 0;
+    return 0;
+  }
+
+  // Helper method to get credibility status with color
+  Map<String, dynamic> _getCredibilityStatus(int score) {
+    String status;
+    Color color;
+    
+    if (score >= 80) {
+      status = 'Excellent';
+      color = Colors.green;
+    } else if (score >= 60) {
+      status = 'Good';
+      color = Colors.blue;
+    } else if (score >= 40) {
+      status = 'Fair';
+      color = Colors.orange;
+    } else {
+      status = 'Poor';
+      color = Colors.red;
+    }
+    
+    return {'status': status, 'color': color};
+  }
+
   Future<void> _loadUsers() async {
     try {
-      setState(() => _isLoading = true);
+      if (mounted) {
+        setState(() => _isLoading = true);
+      }
       
       final snapshot = await _firestore
           .collection('users')
           .orderBy(_sortField, descending: !_sortAscending)
           .get();
       
-      setState(() {
-        _users = snapshot.docs.map((doc) {
-          final data = doc.data();
-          
-          // Validate and ensure role is either 'admin' or 'user'
-          final validatedRole = _validateUserRole(data['role']);
-          
-          return {
-            'id': doc.id,
-            ...data,
-            'role': validatedRole, // Override with validated role
-          };
-        }).toList();
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _users = snapshot.docs.map((doc) {
+            final data = doc.data();
+            
+            // Validate and ensure role is either 'admin' or 'user'
+            final validatedRole = _validateUserRole(data['role']);
+            
+            return {
+              'id': doc.id,
+              ...data,
+              'role': validatedRole, // Override with validated role
+            };
+          }).toList();
+          _isLoading = false;
+        });
+      }
     } catch (e) {
       print('Error loading users: $e');
-      setState(() => _isLoading = false);
-      _showErrorSnackbar('Failed to load users: ${_safeToString(e)}');
+      if (mounted) {
+        setState(() => _isLoading = false);
+        _showErrorSnackbar('Failed to load users: ${_safeToString(e)}');
+      }
     }
   }
 
   void _showErrorSnackbar(String message) {
+    // Use a GlobalKey or ensure context is available
+    if (!mounted) return;
+    
+    ScaffoldMessenger.of(context).clearSnackBars();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
         backgroundColor: Colors.red,
+        duration: const Duration(seconds: 3),
       ),
     );
   }
 
   void _showSuccessSnackbar(String message) {
+    if (!mounted) return;
+    
+    ScaffoldMessenger.of(context).clearSnackBars();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
         backgroundColor: Colors.green,
+        duration: const Duration(seconds: 3),
       ),
     );
   }
@@ -122,10 +170,14 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
         'updatedAt': FieldValue.serverTimestamp(),
       });
       
-      _showSuccessSnackbar('User role updated to $newRole');
-      _loadUsers(); // Refresh the list
+      if (mounted) {
+        _showSuccessSnackbar('User role updated to $newRole');
+        _loadUsers(); // Refresh the list
+      }
     } catch (e) {
-      _showErrorSnackbar('Failed to update role: ${_safeToString(e)}');
+      if (mounted) {
+        _showErrorSnackbar('Failed to update role: ${_safeToString(e)}');
+      }
     }
   }
 
@@ -137,6 +189,8 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
       return;
     }
 
+    if (!mounted) return;
+    
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -163,31 +217,34 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
   // NEW FUNCTION: Delete user from both Firestore and Authentication
   Future<void> _deleteUserFromBoth(String userId, String userEmail) async {
     try {
-      setState(() => _isLoading = true);
+      if (mounted) {
+        setState(() => _isLoading = true);
+      }
       
       // Step 1: Delete from Firestore
       await _firestore.collection('users').doc(userId).delete();
       
-      // Step 2: Delete from Firebase Authentication
-      // Note: This requires the Admin SDK on the server side for security reasons
-      // Since we can't delete users directly from client-side, we'll show a message
-      // about what needs to be done
-      
-      _showSuccessSnackbar('User deleted from Firestore successfully!');
-      
-      // Show additional info about Authentication deletion
-      _showAuthDeletionInfo(userEmail, userId);
-      
-      _loadUsers(); // Refresh the list
+      if (mounted) {
+        _showSuccessSnackbar('User deleted from Firestore successfully!');
+        
+        // Show additional info about Authentication deletion
+        _showAuthDeletionInfo(userEmail, userId);
+        
+        _loadUsers(); // Refresh the list
+      }
       
     } catch (e) {
-      setState(() => _isLoading = false);
-      _showErrorSnackbar('Failed to delete user: ${_safeToString(e)}');
+      if (mounted) {
+        setState(() => _isLoading = false);
+        _showErrorSnackbar('Failed to delete user: ${_safeToString(e)}');
+      }
     }
   }
 
   // NEW FUNCTION: Show information about Authentication deletion
   void _showAuthDeletionInfo(String userEmail, String userId) {
+    if (!mounted) return;
+    
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -236,34 +293,12 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
     );
   }
 
-  // ALTERNATIVE FUNCTION: If you have a Cloud Function setup for user deletion
-  Future<void> _deleteUserWithCloudFunction(String userId, String userEmail) async {
-    try {
-      setState(() => _isLoading = true);
-      
-      // This would call a Cloud Function that handles both Firestore and Auth deletion
-      // Uncomment and implement if you have a Cloud Function set up
-      
-      // Example Cloud Function call (you need to set this up):
-      // await FirebaseFunctions.instance
-      //   .httpsCallable('deleteUser')
-      //   .call({'uid': userId});
-      
-      // For now, we'll just delete from Firestore and show instructions
-      await _firestore.collection('users').doc(userId).delete();
-      
-      _showSuccessSnackbar('User deleted from Firestore! See instructions for Auth cleanup.');
-      _showAuthDeletionInfo(userEmail, userId);
-      
-      _loadUsers();
-      
-    } catch (e) {
-      setState(() => _isLoading = false);
-      _showErrorSnackbar('Failed to delete user: ${_safeToString(e)}');
-    }
-  }
-
   void _showUserDetails(Map<String, dynamic> user) {
+    if (!mounted) return;
+    
+    final credibilityScore = _getCredibilityScore(user);
+    final credibilityStatus = _getCredibilityStatus(credibilityScore);
+    
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -273,6 +308,59 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
+              // Credibility Section
+              Card(
+                color: Colors.blue.shade50,
+                child: Padding(
+                  padding: const EdgeInsets.all(12.0),
+                  child: Column(
+                    children: [
+                      const Text(
+                        'Credibility Score',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.blue,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            '$credibilityScore',
+                            style: TextStyle(
+                              fontSize: 32,
+                              fontWeight: FontWeight.bold,
+                              color: credibilityStatus['color'],
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          const Text(
+                            '/100',
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: Colors.grey,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        credibilityStatus['status'],
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: credibilityStatus['color'],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              
+              // User Information
               _buildDetailRow('Name', _getUserName(user)),
               _buildDetailRow('Email', _getUserEmail(user)),
               _buildDetailRow('Phone', _getUserPhone(user)),
@@ -365,6 +453,8 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
   }
 
   void _showSortFilterDialog() {
+    if (!mounted) return;
+    
     showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
@@ -552,6 +642,10 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
     final validRole = _validateUserRole(user['role']);
     final isAdmin = validRole == 'admin';
     
+    // Get credibility information
+    final credibilityScore = _getCredibilityScore(user);
+    final credibilityStatus = _getCredibilityStatus(credibilityScore);
+    
     // Safe avatar text
     final avatarText = _getUserName(user).isNotEmpty 
         ? _getUserName(user).substring(0, 1).toUpperCase()
@@ -595,6 +689,22 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                     ),
                   ),
                 ),
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: credibilityStatus['color'].withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    '$credibilityScore',
+                    style: TextStyle(
+                      color: credibilityStatus['color'],
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
                 if (isCurrentUser) ...[
                   const SizedBox(width: 8),
                   Container(
@@ -617,61 +727,41 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
             ),
           ],
         ),
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Fixed DropdownButton with proper value validation
-            DropdownButton<String>(
-              value: validRole,
-              items: const [
-                DropdownMenuItem<String>(
-                  value: 'user',
-                  child: Text('User'),
-                ),
-                DropdownMenuItem<String>(
-                  value: 'admin', 
-                  child: Text('Admin'),
-                ),
-              ],
-              onChanged: isCurrentUser 
-                  ? null // Disable for current user
-                  : (String? newRole) {
-                      if (newRole != null && newRole != validRole) {
-                        _updateUserRole(user['id'], newRole);
-                      }
-                    },
+        trailing: PopupMenuButton(
+          itemBuilder: (context) => [
+            const PopupMenuItem(
+              value: 'details',
+              child: ListTile(
+                leading: Icon(Icons.info),
+                title: Text('View Details'),
+              ),
             ),
-            PopupMenuButton(
-              itemBuilder: (context) => [
-                const PopupMenuItem(
-                  value: 'details',
-                  child: ListTile(
-                    leading: Icon(Icons.info),
-                    title: Text('View Details'),
-                  ),
-                ),
-                if (!isCurrentUser) const PopupMenuItem(
-                  value: 'delete',
-                  child: ListTile(
-                    leading: Icon(Icons.delete, color: Colors.red),
-                    title: Text('Delete User'),
-                  ),
-                ),
-              ],
-              onSelected: (value) {
-                switch (value) {
-                  case 'details':
-                    _showUserDetails(user);
-                    break;
-                  case 'delete':
-                    _deleteUser(user['id'], _getUserEmail(user));
-                    break;
-                }
-              },
+            if (!isCurrentUser) const PopupMenuItem(
+              value: 'delete',
+              child: ListTile(
+                leading: Icon(Icons.delete, color: Colors.red),
+                title: Text('Delete User'),
+              ),
             ),
           ],
+          onSelected: (value) {
+            switch (value) {
+              case 'details':
+                _showUserDetails(user);
+                break;
+              case 'delete':
+                _deleteUser(user['id'], _getUserEmail(user));
+                break;
+            }
+          },
         ),
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    // Clear any pending operations
+    super.dispose();
   }
 }

@@ -1,8 +1,10 @@
+// ignore_for_file: unused_import
+
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_project_final/screens/userloanstatus.dart';
-
+import 'package:flutter_project_final/screens/userinfo.dart'; // Add this import
 
 class HomeScreen extends StatelessWidget {
   final String? username;
@@ -83,21 +85,17 @@ class HomeScreen extends StatelessWidget {
         backgroundColor: theme.primaryColor,
         foregroundColor: theme.colorScheme.onPrimary,
         automaticallyImplyLeading: false, // ← This removes the back button
-        actions: [
-          // Settings Icon Button
-          IconButton(
-            icon: const Icon(Icons.settings),
-            tooltip: 'Settings',
-            onPressed: () {
-              // Navigate to Settings Page
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Settings - Coming Soon!'),
-                  backgroundColor: Colors.blue,
-                ),
-              );
-            },
-          ),
+        leading: IconButton( // ← Added user icon on the left
+          icon: const Icon(Icons.person),
+          tooltip: 'User Profile',
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const UserInfoScreen()),
+            );
+          },
+        ),
+        actions: [          
           // Logout Icon Button
           IconButton(
             icon: const Icon(Icons.logout),
@@ -135,7 +133,7 @@ class HomeScreen extends StatelessWidget {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Welcome back!',
+                                'Welcome!',
                                 style: textStyle.bodyMedium?.copyWith(
                                   color: Colors.grey[600],
                                 ),
@@ -177,7 +175,7 @@ class HomeScreen extends StatelessWidget {
                         'Apply for Loan',
                         Colors.blue,
                         () {
-                          Navigator.pushReplacementNamed(context, '/userloan'); // ← Changed to pushReplacement
+                          Navigator.pushReplacementNamed(context, '/userloan');
                         },
                       ),
                       _buildActionCard(
@@ -185,7 +183,7 @@ class HomeScreen extends StatelessWidget {
                         'Make Payment',
                         Colors.green,
                         () {
-                          Navigator.pushReplacementNamed(context, '/userpayment'); // ← Changed to pushReplacement
+                          Navigator.pushReplacementNamed(context, '/userpayment');
                         },
                       ),
                       _buildActionCard(
@@ -193,7 +191,7 @@ class HomeScreen extends StatelessWidget {
                         'View History',
                         Colors.orange,
                         () {
-                          Navigator.pushReplacementNamed(context, '/userhistory'); // ← Changed to pushReplacement
+                          Navigator.pushReplacementNamed(context, '/userhistory');
                         },
                       ),
                       _buildActionCard(
@@ -201,7 +199,7 @@ class HomeScreen extends StatelessWidget {
                         'My Loans',
                         Colors.purple,
                         () {
-                          Navigator.pushReplacementNamed(context, '/userLoanStatus'); // ← Changed to pushReplacement
+                          Navigator.pushReplacementNamed(context, '/userLoanStatus');
                         },
                       ),
                     ],

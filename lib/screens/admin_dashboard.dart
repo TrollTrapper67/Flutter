@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_project_final/screens/loanapplications.dart';
 import './user_management.dart';
+import './admin_history.dart'; // Add this import
 
 class AdminDashboard extends StatelessWidget {
   const AdminDashboard({super.key});
@@ -120,19 +121,23 @@ class AdminDashboard extends StatelessWidget {
         'createdAt': FieldValue.serverTimestamp(),
       });
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('✅ Test user created successfully!'),
-          backgroundColor: Colors.green,
-        ),
-      );
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('✅ Test user created successfully!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('❌ Error creating test data: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('❌ Error creating test data: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
@@ -198,25 +203,10 @@ class AdminDashboard extends StatelessWidget {
               title: const Text('Admin History'),
               onTap: () {
                 Navigator.pop(context);
-                // Navigate to admin history page
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Admin History - Coming Soon!'),
-                    backgroundColor: Colors.blue,
-                  ),
-                );
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.settings),
-              title: const Text('Settings'),
-              onTap: () {
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Settings - Coming Soon!'),
-                    backgroundColor: Colors.blue,
-                  ),
+                // Navigate to Admin History Page
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const AdminHistoryPage()),
                 );
               },
             ),
