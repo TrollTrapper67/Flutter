@@ -87,13 +87,7 @@ class HomeScreen extends StatelessWidget {
             icon: const Icon(Icons.settings),
             tooltip: 'Settings',
             onPressed: () {
-              // Navigate to Settings Page
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Settings - Coming Soon!'),
-                  backgroundColor: Colors.blue,
-                ),
-              );
+              Navigator.pushNamed(context, '/userSettings');
             },
           ),
           // Logout Icon Button

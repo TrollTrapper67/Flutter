@@ -109,6 +109,14 @@ class AdminDashboard extends StatelessWidget {
               },
             ),
             ListTile(
+              leading: const Icon(Icons.settings),
+              title: const Text('Admin Settings'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.pushNamed(context, '/adminSettings');
+              },
+            ),
+            ListTile(
               leading: const Icon(Icons.history),
               title: const Text('Admin History'),
               onTap: () {
@@ -117,14 +125,6 @@ class AdminDashboard extends StatelessWidget {
               },
             ),
             const Divider(),
-            ListTile(
-              leading: const Icon(Icons.settings),
-              title: const Text('Settings'),
-              onTap: () {
-                // Navigate to Settings Page
-                Navigator.pop(context);
-              },
-            ),
             ListTile(
               leading: const Icon(Icons.logout),
               title: const Text('Logout'),
