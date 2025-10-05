@@ -14,8 +14,6 @@ class AppTheme {
     onSecondary: Colors.white,
     error: danger,
     onError: Colors.white,
-    background: Colors.white,
-    onBackground: Colors.black87,
     surface: Colors.white,
     onSurface: Colors.black87,
   );
@@ -23,10 +21,10 @@ class AppTheme {
   static ThemeData theme() {
     final base = ThemeData.from(colorScheme: colorScheme);
     return base.copyWith(
-      scaffoldBackgroundColor: colorScheme.background,
+      scaffoldBackgroundColor: colorScheme.surface,
       appBarTheme: AppBarTheme(
         elevation: 0,
-        color: Colors.white,
+        backgroundColor: Colors.white,
         iconTheme: const IconThemeData(color: Colors.black87),
         titleTextStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
       ),

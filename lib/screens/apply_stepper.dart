@@ -30,7 +30,9 @@ class _ApplyStepperState extends State<ApplyStepper> {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed: $e')));
       } finally {
-        hideLoading(context);
+        if (mounted) {
+          hideLoading(context);
+        }
       }
       return;
     }

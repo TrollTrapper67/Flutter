@@ -5,8 +5,8 @@ Future<void> showLoading(BuildContext ctx, {String text = 'Loading...'}) {
   return showDialog<void>(
     context: ctx,
     barrierDismissible: false,
-    builder: (_) => WillPopScope(
-      onWillPop: () async => false,
+    builder: (_) => PopScope(
+      canPop: false,
       child: AlertDialog(
         content: Row(
           children: [
