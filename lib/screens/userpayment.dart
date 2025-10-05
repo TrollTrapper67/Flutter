@@ -56,18 +56,13 @@ class _PaymentPageState extends State<PaymentPage> {
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) {
-        print('No user logged in');
         return;
       }
-
-      print('Fetching loan data for user: ${user.uid}');
 
       final querySnapshot = await FirebaseFirestore.instance
           .collection('user_loans')
           .where('userId', isEqualTo: user.uid)
           .get();
-
-      print('Found ${querySnapshot.docs.length} loans');
 
       // Filter for active loans in the application
       final activeLoans = querySnapshot.docs.where((doc) {
@@ -91,15 +86,12 @@ class _PaymentPageState extends State<PaymentPage> {
             .toDouble();
         final monthlyPayment = (loanData['monthlyPayment'] ?? 0.0).toDouble();
 
-        print('Loan data: balance=$remainingBalance, monthly=$monthlyPayment');
-
         setState(() {
           _currentBalance = remainingBalance;
           _minimumPayment = monthlyPayment;
           _isLoadingLoanData = false;
         });
       } else {
-        print('No active loans found');
         setState(() {
           _currentBalance = 0.0;
           _minimumPayment = 0.0;
@@ -107,7 +99,6 @@ class _PaymentPageState extends State<PaymentPage> {
         });
       }
     } catch (e) {
-      print('Error fetching user loan data: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -160,10 +151,12 @@ class _PaymentPageState extends State<PaymentPage> {
   }
 
   String get _balanceText {
-    if (_amountValue == 0)
+    if (_amountValue == 0) {
       return 'Remaining balance: ₱${_formatWithCommas(_currentBalance.toString())}';
-    if (_newBalance <= 0)
+    }
+    if (_newBalance <= 0) {
       return 'Overpayment: ₱${_formatWithCommas((-1 * _newBalance).toString())}';
+    }
     if (_amountValue > _currentBalance) return 'Amount exceeds balance!';
     return 'Remaining balance: ₱${_formatWithCommas(_newBalance.toString())}';
   }
@@ -500,10 +493,10 @@ class _PaymentPageState extends State<PaymentPage> {
                         Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: _balanceColor.withOpacity(0.1),
+                            color: _balanceColor.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(8),
                             border: Border.all(
-                              color: _balanceColor.withOpacity(0.3),
+                              color: _balanceColor.withValues(alpha: 0.3),
                             ),
                           ),
                           child: Row(
@@ -562,7 +555,9 @@ class _PaymentPageState extends State<PaymentPage> {
                             margin: const EdgeInsets.only(bottom: 8),
                             child: RadioListTile<String>(
                               value: method,
+                              // ignore: deprecated_member_use
                               groupValue: _selectedPaymentMethod,
+                              // ignore: deprecated_member_use
                               onChanged: (value) {
                                 setState(() {
                                   _selectedPaymentMethod = value!;
@@ -577,7 +572,7 @@ class _PaymentPageState extends State<PaymentPage> {
                               dense: true,
                             ),
                           );
-                        }).toList(),
+                        }),
                       ],
                     ),
                   ),
@@ -620,7 +615,7 @@ class _PaymentPageState extends State<PaymentPage> {
           color: Colors.white,
           boxShadow: [
             BoxShadow(
-              color: Colors.grey.withOpacity(0.3),
+              color: Colors.grey.withValues(alpha: 0.3),
               spreadRadius: 1,
               blurRadius: 5,
               offset: const Offset(0, -2),

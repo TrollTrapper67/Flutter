@@ -187,7 +187,9 @@ class LoanApplicationsPage extends StatelessWidget {
                 }
               }
 
-              Navigator.of(ctx).pop();
+              if (context.mounted) {
+                Navigator.of(ctx).pop();
+              }
 
               // Show success message
               if (context.mounted) {

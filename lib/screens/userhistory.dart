@@ -137,7 +137,6 @@ class _UserHistoryPageState extends State<UserHistoryPage> {
         _isLoading = false;
       });
     } catch (e) {
-      print('Error loading history: $e');
       setState(() {
         _isLoading = false;
       });
@@ -233,7 +232,7 @@ class _UserHistoryPageState extends State<UserHistoryPage> {
         border: Border.all(color: Colors.grey[300]!),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
+            color: Colors.grey.withValues(alpha: 0.1),
             spreadRadius: 1,
             blurRadius: 3,
             offset: const Offset(0, 1),
@@ -245,7 +244,7 @@ class _UserHistoryPageState extends State<UserHistoryPage> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: getOperationColor().withOpacity(0.1),
+              color: getOperationColor().withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Icon(
@@ -444,7 +443,7 @@ class _UserHistoryPageState extends State<UserHistoryPage> {
           _selectedFilter = value;
         });
       },
-      selectedColor: Theme.of(context).primaryColor.withOpacity(0.2),
+      selectedColor: Theme.of(context).primaryColor.withValues(alpha: 0.2),
       checkmarkColor: Theme.of(context).primaryColor,
     );
   }

@@ -47,9 +47,16 @@ class _LoginScreenState extends State<LoginScreen> {
 
         if (user == null) throw Exception("Login failed");
 
+<<<<<<< Updated upstream
         Navigator.pushReplacementNamed(context, '/adminDashboard',
             arguments: user.email);
         return; // stop here, don’t check Firestore
+=======
+        if (mounted) {
+          Navigator.pushReplacementNamed(context, '/adminDashboard');
+        }
+        return; // stop here, don't check Firestore
+>>>>>>> Stashed changes
       }
 
       // 🔑 Regular User/Admin via Firestore role
@@ -64,53 +71,74 @@ class _LoginScreenState extends State<LoginScreen> {
       final doc = await _firestore.collection("users").doc(user.uid).get();
 
       if (!doc.exists) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("No profile found in database.")),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("No profile found in database.")),
+          );
+        }
         return;
       }
 
       final role = doc.data()?['role'] ?? 'user';
 
+<<<<<<< Updated upstream
       if (role == 'admin') {
         Navigator.pushReplacementNamed(context, '/adminDashboard',
             arguments: user.email);
       } else {
         Navigator.pushReplacementNamed(context, '/userDashboard',
             arguments: user.email);
+=======
+      if (mounted) {
+        if (role == 'admin') {
+          Navigator.pushReplacementNamed(context, '/adminDashboard');
+        } else {
+          Navigator.pushReplacementNamed(context, '/userDashboard');
+        }
+>>>>>>> Stashed changes
       }
     } on FirebaseAuthException catch (e) {
       if (e.code == 'user-not-found') {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("No account found. Please sign up first."),
-            duration: Duration(seconds: 2),
-          ),
-        );
-        await Future.delayed(const Duration(seconds: 2));
-        Navigator.pushReplacementNamed(context, '/signup');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("No account found. Please sign up first."),
+              duration: Duration(seconds: 2),
+            ),
+          );
+          await Future.delayed(const Duration(seconds: 2));
+          if (mounted) {
+            Navigator.pushReplacementNamed(context, '/signup');
+          }
+        }
       } else if (e.code == 'wrong-password') {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Incorrect password.")),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text("Incorrect password.")));
+        }
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Login failed: ${e.message}")),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text("Login failed: ${e.message}")));
+        }
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error: $e")),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("Error: $e")));
+      }
     } finally {
       setState(() => _isLoading = false);
     }
   }
 
   OutlineInputBorder _inputBorder(Color color) => OutlineInputBorder(
-        borderRadius: BorderRadius.circular(30.0),
-        borderSide: BorderSide(color: color, width: 1.0),
-      );
+    borderRadius: BorderRadius.circular(30.0),
+    borderSide: BorderSide(color: color, width: 1.0),
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -133,36 +161,44 @@ class _LoginScreenState extends State<LoginScreen> {
               const SizedBox(height: 40),
               TextFormField(
                 controller: _emailController,
-                validator: (value) =>
-                    value == null || value.isEmpty ? "Email is required." : null,
+                validator: (value) => value == null || value.isEmpty
+                    ? "Email is required."
+                    : null,
                 decoration: InputDecoration(
                   labelText: "Email",
                   filled: true,
                   fillColor: Colors.grey[200],
                   border: _inputBorder(Colors.grey.shade300),
                   enabledBorder: _inputBorder(Colors.grey.shade300),
-                  focusedBorder:
-                      _inputBorder(Theme.of(context).colorScheme.primary),
+                  focusedBorder: _inputBorder(
+                    Theme.of(context).colorScheme.primary,
+                  ),
                 ),
               ),
               const SizedBox(height: 20),
               TextFormField(
                 controller: _passwordController,
                 obscureText: !_passwordVisible,
-                validator: (value) =>
-                    value == null || value.isEmpty ? "Password is required." : null,
+                validator: (value) => value == null || value.isEmpty
+                    ? "Password is required."
+                    : null,
                 decoration: InputDecoration(
                   labelText: "Password",
                   filled: true,
                   fillColor: Colors.grey[200],
                   border: _inputBorder(Colors.grey.shade300),
                   enabledBorder: _inputBorder(Colors.grey.shade300),
-                  focusedBorder:
-                      _inputBorder(Theme.of(context).colorScheme.primary),
+                  focusedBorder: _inputBorder(
+                    Theme.of(context).colorScheme.primary,
+                  ),
                   suffixIcon: IconButton(
-                    tooltip: _passwordVisible ? 'Hide password' : 'Show password',
+                    tooltip: _passwordVisible
+                        ? 'Hide password'
+                        : 'Show password',
                     icon: Icon(
-                      _passwordVisible ? Icons.visibility : Icons.visibility_off,
+                      _passwordVisible
+                          ? Icons.visibility
+                          : Icons.visibility_off,
                     ),
                     onPressed: () {
                       setState(() => _passwordVisible = !_passwordVisible);
@@ -176,10 +212,14 @@ class _LoginScreenState extends State<LoginScreen> {
                   : ElevatedButton(
                       onPressed: _handleLogin,
                       style: ElevatedButton.styleFrom(
-                          backgroundColor:
-                              const Color.fromARGB(255, 163, 234, 165),
-                          foregroundColor:
-                              const Color.fromARGB(248, 190, 171, 7)),
+                        backgroundColor: const Color.fromARGB(
+                          255,
+                          163,
+                          234,
+                          165,
+                        ),
+                        foregroundColor: const Color.fromARGB(248, 190, 171, 7),
+                      ),
                       child: const Text("Login"),
                     ),
               const SizedBox(height: 20),
@@ -203,7 +243,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ],
                   ),
                 ),
-              )
+              ),
             ],
           ),
         ),

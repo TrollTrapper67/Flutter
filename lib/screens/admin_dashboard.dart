@@ -118,19 +118,23 @@ class AdminDashboard extends StatelessWidget {
         'createdAt': FieldValue.serverTimestamp(),
       });
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('✅ Test user created successfully!'),
-          backgroundColor: Colors.green,
-        ),
-      );
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('✅ Test user created successfully!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('❌ Error creating test data: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('❌ Error creating test data: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
@@ -164,6 +168,28 @@ class AdminDashboard extends StatelessWidget {
               onTap: () {
                 // Navigate to User Management Page
                 Navigator.pop(context);
+<<<<<<< Updated upstream
+=======
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const UserManagementScreen(),
+                  ),
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.assignment),
+              title: const Text('Loan Applications'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const LoanApplicationsPage(),
+                  ),
+                );
+>>>>>>> Stashed changes
               },
             ),
             ListTile(
@@ -221,8 +247,59 @@ class AdminDashboard extends StatelessWidget {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
+<<<<<<< Updated upstream
                       Icon(Icons.error, size: 64, color: Colors.red[300]),
                       const SizedBox(height: 16),
+=======
+                      // Welcome Section
+                      Card(
+                        elevation: 4,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(20.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Welcome, Admin! 👋',
+                                style: textStyle.headlineMedium?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                'Here is a summary of the system status.',
+                                style: textStyle.titleMedium?.copyWith(
+                                  color: Colors.grey[600],
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Row(
+                                children: [
+                                  Icon(
+                                    Icons.circle,
+                                    size: 8,
+                                    color: Colors.green,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    'Live updates enabled',
+                                    style: textStyle.bodySmall?.copyWith(
+                                      color: Colors.green,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+
+                      // Statistics Grid
+>>>>>>> Stashed changes
                       Text(
                         'Error loading dashboard data',
                         style: textStyle.titleMedium,
@@ -273,6 +350,50 @@ class AdminDashboard extends StatelessWidget {
                           ),
                         ],
                       ),
+<<<<<<< Updated upstream
+=======
+                      const SizedBox(height: 24),
+
+                      // System Status
+                      Text(
+                        'System Status',
+                        style: textStyle.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Card(
+                        child: Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _buildStatusItem(
+                                'Total Loans',
+                                allLoans.length.toString(),
+                                Icons.list_alt,
+                              ),
+                              _buildStatusItem(
+                                'Pending Review',
+                                pendingLoans.length.toString(),
+                                Icons.pending,
+                              ),
+                              _buildStatusItem(
+                                'Approved',
+                                approvedLoans.length.toString(),
+                                Icons.verified,
+                              ),
+                              _buildStatusItem(
+                                'Rejected',
+                                rejectedLoans.length.toString(),
+                                Icons.cancel,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      // Quick Actions section and cards have been removed
+>>>>>>> Stashed changes
                     ],
                   ),
                 ),
@@ -417,6 +538,7 @@ class AdminDashboard extends StatelessWidget {
     );
   }
 
+<<<<<<< Updated upstream
   // Combine multiple Firestore streams
   Stream<List<QuerySnapshot>> _getCombinedStreams() async* {
     await for (final loansSnapshot
@@ -428,6 +550,23 @@ class AdminDashboard extends StatelessWidget {
           .get();
       yield [loansSnapshot, usersSnapshot];
     }
+=======
+  Widget _buildStatusItem(String label, String value, IconData icon) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Row(
+        children: [
+          Icon(icon, size: 20, color: Colors.grey[600]),
+          const SizedBox(width: 12),
+          Expanded(child: Text(label, style: const TextStyle(fontSize: 16))),
+          Text(
+            value,
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          ),
+        ],
+      ),
+    );
+>>>>>>> Stashed changes
   }
 }
 
@@ -506,6 +645,7 @@ class StatCard extends StatelessWidget {
     );
   }
 }
+<<<<<<< Updated upstream
 
 // Reusable widget for action list tiles
 class ActionTile extends StatelessWidget {
@@ -565,3 +705,5 @@ class ActionTile extends StatelessWidget {
     );
   }
 }
+=======
+>>>>>>> Stashed changes

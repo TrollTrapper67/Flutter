@@ -91,6 +91,7 @@ class HomeScreen extends StatelessWidget {
             padding: const EdgeInsets.all(16.0),
             child: Column(
               children: [
+<<<<<<< Updated upstream
                 Row(
                   children: [
                     const CircleAvatar(radius: 28, child: Icon(Icons.person)),
@@ -100,6 +101,113 @@ class HomeScreen extends StatelessWidget {
                       style: Theme.of(context).textTheme.titleMedium,
                     ),
                   ],
+=======
+                // Welcome Section
+                Card(
+                  elevation: 4,
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Row(
+                      children: [
+                        const CircleAvatar(
+                          radius: 28,
+                          backgroundColor: Colors.blue,
+                          child: Icon(
+                            Icons.person,
+                            color: Colors.white,
+                            size: 30,
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Welcome back!',
+                                style: textStyle.bodyMedium?.copyWith(
+                                  color: Colors.grey[600],
+                                ),
+                              ),
+                              Text(
+                                displayName,
+                                style: textStyle.titleLarge?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 32),
+
+                // Quick Actions Title
+                Text(
+                  'Quick Actions',
+                  style: textStyle.titleLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                // Action Cards
+                Expanded(
+                  child: GridView.count(
+                    crossAxisCount: 2,
+                    crossAxisSpacing: 16,
+                    mainAxisSpacing: 16,
+                    childAspectRatio: 1.2,
+                    children: [
+                      _buildActionCard(
+                        Icons.account_balance,
+                        'Apply for Loan',
+                        Colors.blue,
+                        () {
+                          Navigator.pushReplacementNamed(
+                            context,
+                            '/userloan',
+                          ); // ← Changed to pushReplacement
+                        },
+                      ),
+                      _buildActionCard(
+                        Icons.payment,
+                        'Make Payment',
+                        Colors.green,
+                        () {
+                          Navigator.pushReplacementNamed(
+                            context,
+                            '/userpayment',
+                          ); // ← Changed to pushReplacement
+                        },
+                      ),
+                      _buildActionCard(
+                        Icons.history,
+                        'View History',
+                        Colors.orange,
+                        () {
+                          Navigator.pushReplacementNamed(
+                            context,
+                            '/userhistory',
+                          ); // ← Changed to pushReplacement
+                        },
+                      ),
+                      _buildActionCard(
+                        Icons.account_balance_wallet,
+                        'My Loans',
+                        Colors.purple,
+                        () {
+                          Navigator.pushReplacementNamed(
+                            context,
+                            '/userLoanStatus',
+                          ); // ← Changed to pushReplacement
+                        },
+                      ),
+                    ],
+                  ),
+>>>>>>> Stashed changes
                 ),
                 const SizedBox(height: 20),
                 _buildActions(context),
@@ -111,6 +219,7 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
+<<<<<<< Updated upstream
   // 🔹 Confirmation Dialog for Logout
   void _confirmLogout(BuildContext context) {
     showDialog(
@@ -177,6 +286,54 @@ class HomeScreen extends StatelessWidget {
               ],
             ),
           ),
+=======
+  Widget _buildActionCard(
+    IconData icon,
+    String label,
+    Color color,
+    VoidCallback onTap,
+  ) {
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                color.withValues(alpha: 0.1),
+                color.withValues(alpha: 0.05),
+              ],
+            ),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.15),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(icon, size: 32, color: color),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                label,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14,
+                ),
+              ),
+            ],
+          ),
+>>>>>>> Stashed changes
         ),
       ),
     );
