@@ -32,6 +32,35 @@ class HomeScreen extends StatelessWidget {
     }
   }
 
+  // 🔹 Confirmation Dialog for Logout
+  void _confirmLogout(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text("Logout"),
+        content: const Text("Are you sure you want to log out?"),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(ctx).pop(); // close dialog
+            },
+            child: const Text("Cancel"),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.of(ctx).pop(); // close dialog
+              await FirebaseAuth.instance.signOut();
+              if (context.mounted) {
+                Navigator.pushReplacementNamed(context, '/login');
+              }
+            },
+            child: const Text("Logout"),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final routeArg = ModalRoute.of(context)?.settings.arguments;
@@ -51,36 +80,31 @@ class HomeScreen extends StatelessWidget {
         title: const Text('Home'),
         backgroundColor: theme.primaryColor,
         foregroundColor: theme.colorScheme.onPrimary,
-      ),
-      // Add a drawer for user navigation
-      drawer: Drawer(
-        child: ListView(
-          padding: EdgeInsets.zero,
-          children: [
-            DrawerHeader(
-              decoration: BoxDecoration(color: theme.primaryColor),
-              child: Text(
-                'User Menu',
-                style: textStyle.titleLarge?.copyWith(color: Colors.white),
-              ),
-            ),
-            ListTile(
-              leading: const Icon(Icons.settings),
-              title: const Text('Settings'),
-              onTap: () {
-                // Navigate to Settings Page
-                Navigator.pop(context);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.logout),
-              title: const Text('Logout'),
-              onTap: () {
-                _confirmLogout(context);
-              },
-            ),
-          ],
-        ),
+        automaticallyImplyLeading: false, // ← This removes the back button
+        actions: [
+          // Settings Icon Button
+          IconButton(
+            icon: const Icon(Icons.settings),
+            tooltip: 'Settings',
+            onPressed: () {
+              // Navigate to Settings Page
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Settings - Coming Soon!'),
+                  backgroundColor: Colors.blue,
+                ),
+              );
+            },
+          ),
+          // Logout Icon Button
+          IconButton(
+            icon: const Icon(Icons.logout),
+            tooltip: 'Logout',
+            onPressed: () {
+              _confirmLogout(context);
+            },
+          ),
+        ],
       ),
       body: FutureBuilder<String>(
         future: _getDisplayName(),
@@ -91,17 +115,6 @@ class HomeScreen extends StatelessWidget {
             padding: const EdgeInsets.all(16.0),
             child: Column(
               children: [
-<<<<<<< Updated upstream
-                Row(
-                  children: [
-                    const CircleAvatar(radius: 28, child: Icon(Icons.person)),
-                    const SizedBox(width: 12),
-                    Text(
-                      'Welcome, $displayName',
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                  ],
-=======
                 // Welcome Section
                 Card(
                   elevation: 4,
@@ -207,10 +220,7 @@ class HomeScreen extends StatelessWidget {
                       ),
                     ],
                   ),
->>>>>>> Stashed changes
                 ),
-                const SizedBox(height: 20),
-                _buildActions(context),
               ],
             ),
           );
@@ -219,74 +229,6 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-<<<<<<< Updated upstream
-  // 🔹 Confirmation Dialog for Logout
-  void _confirmLogout(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text("Logout"),
-        content: const Text("Are you sure you want to log out?"),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.of(ctx).pop(); // close dialog
-            },
-            child: const Text("Cancel"),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.of(ctx).pop(); // close dialog
-              Navigator.pushReplacementNamed(context, '/login');
-            },
-            child: const Text("Logout"),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildActions(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        _actionCard(Icons.account_balance, 'Loan', () {
-          Navigator.pushNamed(context, '/userloan');
-        }),
-        const SizedBox(width: 8),
-        _actionCard(Icons.payment, 'Pay', () {
-          Navigator.pushNamed(context, '/userpayment');
-        }),
-        const SizedBox(width: 8),
-        _actionCard(Icons.history, 'View History', () {
-          Navigator.pushNamed(context, '/userhistory');
-        }),
-        const SizedBox(width: 8),
-        _actionCard(Icons.account_balance_wallet, 'My Loan', () {
-          Navigator.pushNamed(context, '/userloanstatus');
-        }),
-      ],
-    );
-  }
-
-  Widget _actionCard(IconData icon, String label, VoidCallback onTap) {
-    return Expanded(
-      child: Card(
-        elevation: 2,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        child: InkWell(
-          onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-            child: Column(
-              children: [
-                Icon(icon, size: 28),
-                const SizedBox(height: 8),
-                Text(label),
-              ],
-            ),
-          ),
-=======
   Widget _buildActionCard(
     IconData icon,
     String label,
@@ -333,7 +275,6 @@ class HomeScreen extends StatelessWidget {
               ),
             ],
           ),
->>>>>>> Stashed changes
         ),
       ),
     );

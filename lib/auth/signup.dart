@@ -42,7 +42,6 @@ class _SignupScreenState extends State<SignupScreen> {
     setState(() => _isLoading = true);
 
     try {
-      // ✅ Create user in Firebase Auth
       final userCredential = await _auth.createUserWithEmailAndPassword(
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
@@ -54,23 +53,10 @@ class _SignupScreenState extends State<SignupScreen> {
         // ✅ Save user info & role in Firestore
         await FirebaseFirestore.instance.collection("users").doc(user.uid).set({
           "email": user.email,
-<<<<<<< Updated upstream
-=======
-          "name": _nameController.text.trim(),
-          "age": int.tryParse(_ageController.text.trim()) ?? 0,
-          "address": _addressController.text.trim(),
-          "birthday": _selectedBirthday != null
-              ? Timestamp.fromDate(_selectedBirthday!)
-              : null,
->>>>>>> Stashed changes
           "role": "user", // default role for all new signups
           "createdAt": FieldValue.serverTimestamp(),
         });
 
-<<<<<<< Updated upstream
-        // ✅ Navigate user to dashboard
-        Navigator.pushReplacementNamed(context, '/userDashboard', arguments: user.email);
-=======
         // ✅ Show success message and redirect to login page
         if (context.mounted) {
           // ignore: use_build_context_synchronously
@@ -90,7 +76,6 @@ class _SignupScreenState extends State<SignupScreen> {
             Navigator.pushReplacementNamed(context, '/login');
           }
         }
->>>>>>> Stashed changes
       }
     } on FirebaseAuthException catch (e) {
       String message = "Signup failed. Please try again.";
@@ -98,26 +83,22 @@ class _SignupScreenState extends State<SignupScreen> {
         message = "This email is already registered.";
       } else if (e.code == 'weak-password') {
         message = "Password should be at least 6 characters.";
-<<<<<<< Updated upstream
-=======
       } else if (e.code == 'invalid-email') {
         message = "Invalid email address.";
       }
       if (context.mounted) {
-        // ignore: use_build_context_synchronously
         ScaffoldMessenger.of(
+          // ignore: use_build_context_synchronously
           context,
         ).showSnackBar(SnackBar(content: Text(message)));
       }
     } catch (e) {
       if (context.mounted) {
-        // ignore: use_build_context_synchronously
         ScaffoldMessenger.of(
+          // ignore: use_build_context_synchronously
           context,
         ).showSnackBar(SnackBar(content: Text("An error occurred: $e")));
->>>>>>> Stashed changes
       }
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
     } finally {
       setState(() => _isLoading = false);
     }
@@ -132,163 +113,49 @@ class _SignupScreenState extends State<SignupScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          "Sign Up",
-          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.yellow),
-        ),
+        title: const Text("Sign Up"),
         centerTitle: true,
         backgroundColor: Colors.green,
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24.0),
+        padding: const EdgeInsets.all(16.0),
         child: Form(
           key: _formKey,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-<<<<<<< Updated upstream
-              const SizedBox(height: 40),
-              TextFormField(
-                controller: _emailController,
-                validator: (value) =>
-                    value == null || value.isEmpty ? "Email is required." : null,
-=======
               const SizedBox(height: 20),
-
-              // Name Field
-              TextFormField(
-                controller: _nameController,
-                validator: (value) => value == null || value.isEmpty
-                    ? "Full name is required."
-                    : null,
-                decoration: InputDecoration(
-                  labelText: "Full Name",
-                  filled: true,
-                  fillColor: Colors.grey[200],
-                  border: _inputBorder(Colors.grey.shade300),
-                  enabledBorder: _inputBorder(Colors.grey.shade300),
-                  focusedBorder: _inputBorder(
-                    Theme.of(context).colorScheme.primary,
-                  ),
-                  prefixIcon: const Icon(Icons.person),
-                ),
-              ),
-              const SizedBox(height: 20),
-
-              // Email Field
               TextFormField(
                 controller: _emailController,
                 keyboardType: TextInputType.emailAddress,
                 validator: (value) => value == null || value.isEmpty
                     ? "Email is required."
                     : null,
->>>>>>> Stashed changes
                 decoration: InputDecoration(
                   labelText: "Email",
-                  filled: true,
-                  fillColor: Colors.grey[200],
-                  border: _inputBorder(Colors.grey.shade300),
-                  enabledBorder: _inputBorder(Colors.grey.shade300),
-<<<<<<< Updated upstream
-                  focusedBorder:
-                      _inputBorder(Theme.of(context).colorScheme.primary),
-                ),
-              ),
-              const SizedBox(height: 20),
-=======
-                  focusedBorder: _inputBorder(
-                    Theme.of(context).colorScheme.primary,
-                  ),
                   prefixIcon: const Icon(Icons.email),
-                ),
-              ),
-              const SizedBox(height: 20),
-
-              // Age Field
-              TextFormField(
-                controller: _ageController,
-                keyboardType: TextInputType.number,
-                validator: _validateAge,
-                decoration: InputDecoration(
-                  labelText: "Age",
-                  filled: true,
-                  fillColor: Colors.grey[200],
                   border: _inputBorder(Colors.grey.shade300),
                   enabledBorder: _inputBorder(Colors.grey.shade300),
                   focusedBorder: _inputBorder(
                     Theme.of(context).colorScheme.primary,
                   ),
-                  prefixIcon: const Icon(Icons.cake),
-                  suffixText: "years",
                 ),
               ),
               const SizedBox(height: 20),
-
-              // Birthday Field
-              TextFormField(
-                controller: _birthdayController,
-                readOnly: true,
-                validator: _validateBirthday,
-                onTap: () => _selectBirthday(context),
-                decoration: InputDecoration(
-                  labelText: "Birthday",
-                  filled: true,
-                  fillColor: Colors.grey[200],
-                  border: _inputBorder(Colors.grey.shade300),
-                  enabledBorder: _inputBorder(Colors.grey.shade300),
-                  focusedBorder: _inputBorder(
-                    Theme.of(context).colorScheme.primary,
-                  ),
-                  prefixIcon: const Icon(Icons.calendar_today),
-                  hintText: "Select your birthday",
-                ),
-              ),
-              const SizedBox(height: 20),
-
-              // Address Field
-              TextFormField(
-                controller: _addressController,
-                maxLines: 2,
-                validator: (value) => value == null || value.isEmpty
-                    ? "Address is required."
-                    : null,
-                decoration: InputDecoration(
-                  labelText: "Address",
-                  filled: true,
-                  fillColor: Colors.grey[200],
-                  border: _inputBorder(Colors.grey.shade300),
-                  enabledBorder: _inputBorder(Colors.grey.shade300),
-                  focusedBorder: _inputBorder(
-                    Theme.of(context).colorScheme.primary,
-                  ),
-                  prefixIcon: const Icon(Icons.home),
-                  hintText: "Enter your complete address",
-                ),
-              ),
-              const SizedBox(height: 20),
-
-              // Password Field
->>>>>>> Stashed changes
               TextFormField(
                 controller: _passwordController,
                 obscureText: !_passwordVisible,
-                validator: (value) =>
-                    value == null || value.isEmpty ? "Password is required." : null,
+                validator: (value) => value == null || value.isEmpty
+                    ? "Password is required."
+                    : null,
                 decoration: InputDecoration(
                   labelText: "Password",
-                  filled: true,
-                  fillColor: Colors.grey[200],
+                  prefixIcon: const Icon(Icons.lock),
                   border: _inputBorder(Colors.grey.shade300),
                   enabledBorder: _inputBorder(Colors.grey.shade300),
-<<<<<<< Updated upstream
-                  focusedBorder:
-                      _inputBorder(Theme.of(context).colorScheme.primary),
-=======
                   focusedBorder: _inputBorder(
                     Theme.of(context).colorScheme.primary,
                   ),
-                  prefixIcon: const Icon(Icons.lock),
->>>>>>> Stashed changes
                   suffixIcon: IconButton(
                     tooltip: _passwordVisible
                         ? 'Hide password'
@@ -299,7 +166,9 @@ class _SignupScreenState extends State<SignupScreen> {
                           : Icons.visibility_off,
                     ),
                     onPressed: () {
-                      setState(() => _passwordVisible = !_passwordVisible);
+                      setState(() {
+                        _passwordVisible = !_passwordVisible;
+                      });
                     },
                   ),
                 ),
@@ -308,23 +177,17 @@ class _SignupScreenState extends State<SignupScreen> {
               TextFormField(
                 controller: _confirmPasswordController,
                 obscureText: true,
-                validator: (value) =>
-                    value == null || value.isEmpty ? "Confirm your password." : null,
+                validator: (value) => value == null || value.isEmpty
+                    ? "Confirm your password."
+                    : null,
                 decoration: InputDecoration(
                   labelText: "Confirm Password",
-                  filled: true,
-                  fillColor: Colors.grey[200],
+                  prefixIcon: const Icon(Icons.lock_outline),
                   border: _inputBorder(Colors.grey.shade300),
                   enabledBorder: _inputBorder(Colors.grey.shade300),
-<<<<<<< Updated upstream
-                  focusedBorder:
-                      _inputBorder(Theme.of(context).colorScheme.primary),
-=======
                   focusedBorder: _inputBorder(
                     Theme.of(context).colorScheme.primary,
                   ),
-                  prefixIcon: const Icon(Icons.lock_outline),
->>>>>>> Stashed changes
                 ),
               ),
               const SizedBox(height: 40),

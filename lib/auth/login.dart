@@ -47,16 +47,10 @@ class _LoginScreenState extends State<LoginScreen> {
 
         if (user == null) throw Exception("Login failed");
 
-<<<<<<< Updated upstream
-        Navigator.pushReplacementNamed(context, '/adminDashboard',
-            arguments: user.email);
-        return; // stop here, don’t check Firestore
-=======
         if (mounted) {
           Navigator.pushReplacementNamed(context, '/adminDashboard');
         }
         return; // stop here, don't check Firestore
->>>>>>> Stashed changes
       }
 
       // 🔑 Regular User/Admin via Firestore role
@@ -81,21 +75,12 @@ class _LoginScreenState extends State<LoginScreen> {
 
       final role = doc.data()?['role'] ?? 'user';
 
-<<<<<<< Updated upstream
-      if (role == 'admin') {
-        Navigator.pushReplacementNamed(context, '/adminDashboard',
-            arguments: user.email);
-      } else {
-        Navigator.pushReplacementNamed(context, '/userDashboard',
-            arguments: user.email);
-=======
       if (mounted) {
         if (role == 'admin') {
           Navigator.pushReplacementNamed(context, '/adminDashboard');
         } else {
           Navigator.pushReplacementNamed(context, '/userDashboard');
         }
->>>>>>> Stashed changes
       }
     } on FirebaseAuthException catch (e) {
       if (e.code == 'user-not-found') {
