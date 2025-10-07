@@ -1,3 +1,5 @@
+// ignore_for_file: unnecessary_cast
+
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -16,6 +18,41 @@ class _LoanPageState extends State<LoanPage> {
   int? _selectedMonths;
   final List<int> _presetMonths = [6, 12, 24, 36, 48, 60];
   bool _useCustom = false;
+  String? _userName;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchUserName();
+  }
+
+  // Fetch user name from Firestore
+  Future<void> _fetchUserName() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      try {
+        final userDoc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .get();
+
+        if (userDoc.exists) {
+          final userData = userDoc.data() as Map<String, dynamic>?;
+          setState(() {
+            _userName = userData?['name'] ?? 'Unknown User';
+          });
+        } else {
+          setState(() {
+            _userName = 'Unknown User';
+          });
+        }
+      } catch (e) {
+        setState(() {
+          _userName = 'Unknown User';
+        });
+      }
+    }
+  }
 
   double get _principal {
     final t = _principalController.text.replaceAll(',', '');
@@ -154,6 +191,7 @@ class _LoanPageState extends State<LoanPage> {
       await FirebaseFirestore.instance.collection("loan_applications").add({
         "userId": user.uid,
         "email": user.email,
+        "name": _userName ?? 'Unknown User', // Store user name
         "principal": _principal,
         "months": _months,
         "monthlyPayment": _monthlyPayment,
@@ -232,6 +270,38 @@ class _LoanPageState extends State<LoanPage> {
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
+            // User Info Card (Optional - to show who is applying)
+            if (_userName != null)
+              _buildCard(
+                child: Row(
+                  children: [
+                    const Icon(Icons.person, color: Colors.blue),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Applying as:',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey,
+                            ),
+                          ),
+                          Text(
+                            _userName!,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
             _buildCard(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,

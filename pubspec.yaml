@@ -34,6 +34,9 @@ dependencies:
   firebase_auth: ^5.7.0   # (latest as of 2025)
   intl: ^0.18.1
   image_picker: ^1.0.4
+  file_picker: ^5.5.0  # or latest version
+  path_provider: ^2.1.1  # or latest version
+  
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.

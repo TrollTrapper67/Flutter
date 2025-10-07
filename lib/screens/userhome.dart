@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_project_final/screens/userloanstatus.dart';
-import 'package:flutter_project_final/screens/userinfo.dart'; // Add this import
+import 'package:flutter_project_final/screens/userinfo.dart';
 
 class HomeScreen extends StatelessWidget {
   final String? username;
@@ -36,6 +36,25 @@ class HomeScreen extends StatelessWidget {
     }
   }
 
+  // 🔹 Get unread notifications count based on your Firestore structure
+  Future<int> _getUnreadNotificationsCount() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return 0;
+
+    try {
+      final querySnapshot = await FirebaseFirestore.instance
+          .collection("notifications") // Your main notifications collection
+          .where("userId", isEqualTo: user.uid) // Filter by current user
+          .where("isRead", isEqualTo: false) // Filter unread notifications
+          .get();
+
+      return querySnapshot.docs.length;
+    } catch (e) {
+      print("Error fetching notifications count: $e");
+      return 0;
+    }
+  }
+
   // 🔹 Confirmation Dialog for Logout
   void _confirmLogout(BuildContext context) {
     showDialog(
@@ -46,13 +65,13 @@ class HomeScreen extends StatelessWidget {
         actions: [
           TextButton(
             onPressed: () {
-              Navigator.of(ctx).pop(); // close dialog
+              Navigator.of(ctx).pop();
             },
             child: const Text("Cancel"),
           ),
           ElevatedButton(
             onPressed: () async {
-              Navigator.of(ctx).pop(); // close dialog
+              Navigator.of(ctx).pop();
               await FirebaseAuth.instance.signOut();
               if (context.mounted) {
                 Navigator.pushReplacementNamed(context, '/login');
@@ -84,8 +103,8 @@ class HomeScreen extends StatelessWidget {
         title: const Text('Home'),
         backgroundColor: theme.primaryColor,
         foregroundColor: theme.colorScheme.onPrimary,
-        automaticallyImplyLeading: false, // ← This removes the back button
-        leading: IconButton( // ← Added user icon on the left
+        automaticallyImplyLeading: false,
+        leading: IconButton(
           icon: const Icon(Icons.person),
           tooltip: 'User Profile',
           onPressed: () {
@@ -95,7 +114,51 @@ class HomeScreen extends StatelessWidget {
             );
           },
         ),
-        actions: [          
+        actions: [
+          // Notification Icon Button with Badge
+          FutureBuilder<int>(
+            future: _getUnreadNotificationsCount(),
+            builder: (context, snapshot) {
+              final unreadCount = snapshot.data ?? 0;
+              
+              return Stack(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.notifications),
+                    tooltip: 'Notifications',
+                    onPressed: () {
+                      Navigator.pushReplacementNamed(context, '/notification');
+                    },
+                  ),
+                  if (unreadCount > 0)
+                    Positioned(
+                      right: 8,
+                      top: 8,
+                      child: Container(
+                        padding: const EdgeInsets.all(2),
+                        decoration: BoxDecoration(
+                          color: Colors.red,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        constraints: const BoxConstraints(
+                          minWidth: 16,
+                          minHeight: 16,
+                        ),
+                        child: Text(
+                          unreadCount > 99 ? '99+' : unreadCount.toString(),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ),
+                ],
+              );
+            },
+          ),
           // Logout Icon Button
           IconButton(
             icon: const Icon(Icons.logout),

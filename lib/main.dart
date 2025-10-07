@@ -4,6 +4,7 @@ import 'package:flutter_project_final/auth/login.dart';
 import 'package:flutter_project_final/auth/signup.dart';
 import 'package:flutter_project_final/screens/admin_dashboard.dart';
 import 'package:flutter_project_final/screens/loanapplications.dart';
+import 'package:flutter_project_final/screens/notification.dart';
 import 'package:flutter_project_final/screens/user_credibility.dart';
 import 'package:flutter_project_final/screens/user_management.dart';
 import 'package:flutter_project_final/screens/userhistory.dart';
@@ -66,6 +67,7 @@ class MyApp extends StatelessWidget {
         '/userManagement': (_) => const UserManagementScreen(),
         '/userInfo': (context) => const UserInfoScreen(),
         '/user-credibility': (context) => const UserCredibilityScreen(),
+        '/notification': (context) => const NotificationScreen(),
       },
       onGenerateRoute: (settings) {
         // Handle navigation for pages that might be accessed directly via URL

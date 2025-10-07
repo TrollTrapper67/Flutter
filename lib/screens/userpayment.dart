@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:math';
 
 class PaymentPage extends StatefulWidget {
   static const routeName = '/payment';
@@ -152,19 +153,31 @@ class _PaymentPageState extends State<PaymentPage> {
 
   double get _newBalance => _currentBalance - _amountValue;
 
+  // New method to check if payment amount equals balance
+  bool get _isExactBalance => _amountValue == _currentBalance;
+
+  // New method to check if payment exceeds balance
+  bool get _exceedsBalance => _amountValue > _currentBalance;
+
+  // New method to check if payment is valid for processing
+  bool get _isValidPayment => _amountValue > 0 && 
+                            _amountValue <= _currentBalance && 
+                            _amountValue <= _paymentLimits[_selectedPaymentMethod]!;
+
   Color get _balanceColor {
     if (_amountValue == 0) return Colors.red;
-    if (_newBalance <= 0) return Colors.green;
-    if (_amountValue > _currentBalance) return Colors.orange;
+    if (_exceedsBalance) return Colors.orange;
+    if (_isExactBalance) return Colors.green;
     return Colors.blue;
   }
 
   String get _balanceText {
     if (_amountValue == 0)
       return 'Remaining balance: ₱${_formatWithCommas(_currentBalance.toString())}';
-    if (_newBalance <= 0)
-      return 'Overpayment: ₱${_formatWithCommas((-1 * _newBalance).toString())}';
-    if (_amountValue > _currentBalance) return 'Amount exceeds balance!';
+    if (_exceedsBalance)
+      return 'Amount exceeds balance!';
+    if (_isExactBalance)
+      return 'Enough amount - This will pay off your loan completely!';
     return 'Remaining balance: ₱${_formatWithCommas(_newBalance.toString())}';
   }
 
@@ -188,6 +201,11 @@ class _PaymentPageState extends State<PaymentPage> {
       return;
     }
 
+    if (_exceedsBalance) {
+      _showError('Amount exceeds your current balance!');
+      return;
+    }
+
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -201,7 +219,9 @@ class _PaymentPageState extends State<PaymentPage> {
             ),
             const SizedBox(height: 8),
             Text(
-              'New balance will be ₱${_formatWithCommas(_newBalance.toString())}.',
+              _isExactBalance 
+                ? 'This will completely pay off your loan!'
+                : 'New balance will be ₱${_formatWithCommas(_newBalance.toString())}.',
             ),
             const SizedBox(height: 8),
             Text(
@@ -228,7 +248,7 @@ class _PaymentPageState extends State<PaymentPage> {
     );
   }
 
-  void _processPayment() async {
+  Future<void> _processPayment() async {
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) return;
@@ -261,44 +281,145 @@ class _PaymentPageState extends State<PaymentPage> {
       });
 
       final loanDoc = activeLoans.first;
+      final loanData = loanDoc.data();
       final newBalance = _newBalance;
 
-      // Update the loan balance in database
-      await loanDoc.reference.update({
-        'remainingBalance': newBalance,
-        'lastPaymentAt': FieldValue.serverTimestamp(),
-        'lastPaymentAmount': _amountValue.toDouble(),
-      });
+      // Generate receipt data FIRST
+      final receiptData = await _generateReceiptData(
+        user.uid,
+        loanDoc.id,
+        loanData,
+        newBalance,
+      );
 
-      // Create payment record
-      await FirebaseFirestore.instance.collection('user_payments').add({
+      print('Generated receipt data: ${receiptData['receiptId']}');
+
+      // Create payment record FIRST
+      final paymentDoc = await FirebaseFirestore.instance.collection('user_payments').add({
         'userId': user.uid,
         'loanId': loanDoc.id,
         'amount': _amountValue.toDouble(),
         'paymentMethod': _selectedPaymentMethod,
         'notes': _notesController.text,
         'timestamp': FieldValue.serverTimestamp(),
+        'isFullPayment': _isExactBalance,
+        'receiptId': receiptData['receiptId'], // Link to receipt
       });
+
+      print('Created payment record: ${paymentDoc.id}');
+
+      // Save receipt to receipts collection
+      await FirebaseFirestore.instance.collection('receipts').doc(receiptData['receiptId']).set({
+        'receiptId': receiptData['receiptId'],
+        'userId': user.uid,
+        'loanId': loanDoc.id,
+        'paymentId': paymentDoc.id,
+        'amount': _amountValue.toDouble(),
+        'paymentMethod': _selectedPaymentMethod,
+        'previousBalance': _currentBalance,
+        'newBalance': newBalance,
+        'paymentDate': FieldValue.serverTimestamp(),
+        'receiptNumber': receiptData['receiptNumber'],
+        'loanDetails': {
+          'loanAmount': loanData['loanAmount'] ?? 0.0,
+          'interestRate': loanData['interestRate'] ?? 0.0,
+          'termMonths': loanData['termMonths'] ?? 0,
+        },
+        'notes': _notesController.text,
+        'isFullPayment': _isExactBalance,
+        'status': 'completed',
+      });
+
+      print('Saved receipt to Firestore: ${receiptData['receiptId']}');
+
+      // Update the loan balance in database LAST
+      await loanDoc.reference.update({
+        'remainingBalance': newBalance,
+        'lastPaymentAt': FieldValue.serverTimestamp(),
+        'lastPaymentAmount': _amountValue.toDouble(),
+      });
+
+      // If balance is fully paid, mark loan as completed
+      if (newBalance <= 0) {
+        await loanDoc.reference.update({
+          'status': 'completed',
+          'completedAt': FieldValue.serverTimestamp(),
+        });
+      }
 
       if (!mounted) return;
 
       setState(() {
         _currentBalance = newBalance;
-        _amountController.clear();
-        _notesController.clear();
       });
 
-      _showSuccessToast();
+      // Show receipt popup
+      _showReceiptPopup(receiptData);
     } catch (e) {
+      print('Payment failed error: $e');
       _showError('Payment failed: $e');
     }
+  }
+
+  Future<Map<String, dynamic>> _generateReceiptData(
+    String userId, 
+    String loanId, 
+    Map<String, dynamic> loanData, 
+    double newBalance
+  ) async {
+    // Generate unique receipt ID
+    final receiptId = 'RCP${DateTime.now().millisecondsSinceEpoch}${userId.substring(0, 6)}';
+    
+    // Generate receipt number (format: RCP-YYYYMMDD-XXXXX)
+    final now = DateTime.now();
+    final receiptNumber = 'RCP-${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}-${_generateRandomString(5)}';
+    
+    return {
+      'receiptId': receiptId,
+      'receiptNumber': receiptNumber,
+      'userId': userId,
+      'loanId': loanId,
+      'amount': _amountValue.toDouble(),
+      'paymentMethod': _selectedPaymentMethod,
+      'previousBalance': _currentBalance,
+      'newBalance': newBalance,
+      'paymentDate': DateTime.now(),
+      'loanDetails': loanData,
+      'notes': _notesController.text,
+      'isFullPayment': _isExactBalance,
+    };
+  }
+
+  String _generateRandomString(int length) {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    final random = Random();
+    return String.fromCharCodes(Iterable.generate(
+      length, (_) => chars.codeUnitAt(random.nextInt(chars.length))));
+  }
+
+  void _showReceiptPopup(Map<String, dynamic> receiptData) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => ReceiptPopup(
+        receiptData: receiptData,
+        onClose: () {
+          Navigator.of(context).pop();
+          _amountController.clear();
+          _notesController.clear();
+          _showSuccessToast();
+        },
+      ),
+    );
   }
 
   void _showSuccessToast() {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          'Payment successful — ₱${_formatWithCommas(_amountValue.toString())} received. New balance: ₱${_formatWithCommas(_currentBalance.toString())}.',
+          _isExactBalance
+            ? ' Congratulations! Your loan has been fully paid!'
+            : 'Payment successful. New balance: ₱${_formatWithCommas(_currentBalance.toString())}.',
         ),
         backgroundColor: Colors.green,
         duration: const Duration(seconds: 4),
@@ -320,7 +441,7 @@ class _PaymentPageState extends State<PaymentPage> {
   String _getPaymentMethodName(String method) {
     switch (method) {
       case 'saved_cards':
-        return 'Saved Cards';
+        return 'Credit/Debit Card';
       case 'bank_transfer':
         return 'Bank Transfer';
       case 'cash_branch':
@@ -455,11 +576,6 @@ class _PaymentPageState extends State<PaymentPage> {
                               _minimumPayment.toInt(),
                               () => _setAmount(_minimumPayment),
                             ),
-                            const SizedBox(width: 8),
-                            _buildQuickButton('Custom', 0, () {
-                              _amountController.clear();
-                              setState(() {});
-                            }),
                           ],
                         ),
                       ],
@@ -509,9 +625,11 @@ class _PaymentPageState extends State<PaymentPage> {
                           child: Row(
                             children: [
                               Icon(
-                                _amountValue > _currentBalance
+                                _exceedsBalance
                                     ? Icons.warning
-                                    : Icons.account_balance_wallet,
+                                    : _isExactBalance
+                                      ? Icons.check_circle
+                                      : Icons.account_balance_wallet,
                                 color: _balanceColor,
                                 size: 20,
                               ),
@@ -631,9 +749,11 @@ class _PaymentPageState extends State<PaymentPage> {
           child: SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: _amountValue > 0 ? _showPaymentConfirmation : null,
+              onPressed: _isValidPayment ? _showPaymentConfirmation : null,
               style: ElevatedButton.styleFrom(
-                backgroundColor: Theme.of(context).primaryColor,
+                backgroundColor: _isExactBalance 
+                  ? Colors.green 
+                  : Theme.of(context).primaryColor,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(
@@ -641,14 +761,194 @@ class _PaymentPageState extends State<PaymentPage> {
                 ),
                 elevation: 2,
               ),
-              child: const Text(
-                'Pay',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              child: Text(
+                _isExactBalance ? 'Pay Off Loan Completely' : 'Pay',
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
             ),
           ),
         ),
       ),
     );
+  }
+}
+
+// Receipt Popup Widget
+class ReceiptPopup extends StatelessWidget {
+  final Map<String, dynamic> receiptData;
+  final VoidCallback onClose;
+
+  const ReceiptPopup({
+    super.key,
+    required this.receiptData,
+    required this.onClose,
+  });
+
+  String _formatDate(DateTime date) {
+    return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')} ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
+  }
+
+  String _formatCurrency(double amount) {
+    return '₱${amount.toStringAsFixed(2).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final paymentDate = receiptData['paymentDate'] is Timestamp 
+        ? (receiptData['paymentDate'] as Timestamp).toDate()
+        : receiptData['paymentDate'] as DateTime;
+
+    return Dialog(
+      insetPadding: const EdgeInsets.all(20),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: SingleChildScrollView(
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            color: Colors.white,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Header
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.green[50],
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.green),
+                ),
+                child: Column(
+                  children: [
+                    Icon(
+                      Icons.check_circle,
+                      color: Colors.green,
+                      size: 48,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Payment Successful!',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.green[800],
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Receipt #${receiptData['receiptNumber']}',
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 24),
+
+              // Receipt Details
+              Column(
+                children: [
+                  _buildReceiptRow('Amount Paid', _formatCurrency(receiptData['amount'])),
+                  _buildReceiptRow('Payment Method', _getPaymentMethodName(receiptData['paymentMethod'])),
+                  _buildReceiptRow('Previous Balance', _formatCurrency(receiptData['previousBalance'])),
+                  _buildReceiptRow('New Balance', _formatCurrency(receiptData['newBalance'])),
+                  _buildReceiptRow('Payment Date', _formatDate(paymentDate)),
+                  if (receiptData['isFullPayment'] == true)
+                    _buildReceiptRow('Status', 'FULL PAYMENT', isHighlighted: true),
+                ],
+              ),
+
+              const SizedBox(height: 20),
+
+              // Notes
+              if (receiptData['notes'] != null && receiptData['notes'].toString().isNotEmpty)
+                Column(
+                  children: [
+                    const Divider(),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Notes:',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      receiptData['notes'].toString(),
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+
+              const SizedBox(height: 24),
+
+              // Action Buttons
+              Row(
+                children: [
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: onClose,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Theme.of(context).primaryColor,
+                      ),
+                      child: const Text(
+                        'Done',
+                        style: TextStyle(color: Colors.white),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildReceiptRow(String label, String value, {bool isHighlighted = false}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              fontWeight: FontWeight.w500,
+              color: Colors.grey[700],
+            ),
+          ),
+          Text(
+            value,
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: isHighlighted ? Colors.green : Colors.black,
+              fontSize: isHighlighted ? 16 : 14,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _getPaymentMethodName(String method) {
+    switch (method) {
+      case 'saved_cards': return 'Credit/Debit Card';
+      case 'bank_transfer': return 'Bank Transfer';
+      case 'cash_branch': return 'Cash at Branch';
+      case 'wallet': return 'Digital Wallet';
+      default: return 'Unknown';
+    }
   }
 }

@@ -3,7 +3,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_project_final/screens/loanapplications.dart';
 import './user_management.dart';
-import './admin_history.dart'; // Add this import
+import './admin_history.dart';
+import './admin_messages.dart'; // Add this import
 
 class AdminDashboard extends StatelessWidget {
   const AdminDashboard({super.key});
@@ -153,6 +154,17 @@ class AdminDashboard extends StatelessWidget {
         backgroundColor: theme.primaryColor,
         foregroundColor: theme.colorScheme.onPrimary,
         actions: [
+          // Message Icon Button
+          IconButton(
+            icon: const Icon(Icons.message),
+            tooltip: 'Send Payment Reminders',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const AdminMessagesPage()),
+              );
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: () {

@@ -10,6 +10,8 @@ class HistoryEntry {
   final String description;
   final String? loanId;
   final String? paymentMethod;
+  final String? receiptId;
+  final String? paymentId;
 
   HistoryEntry({
     required this.date,
@@ -18,6 +20,8 @@ class HistoryEntry {
     required this.description,
     this.loanId,
     this.paymentMethod,
+    this.receiptId,
+    this.paymentId,
   });
 }
 
@@ -114,6 +118,7 @@ class _UserHistoryPageState extends State<UserHistoryPage> {
           final amount = (data['amount'] ?? 0.0).toDouble();
           final paymentMethod = data['paymentMethod'] ?? 'Unknown';
           final notes = data['notes'] ?? '';
+          final receiptId = data['receiptId'];
 
           history.add(
             HistoryEntry(
@@ -124,6 +129,8 @@ class _UserHistoryPageState extends State<UserHistoryPage> {
                   'Payment of ₱${_formatCurrency(amount)} via ${_getPaymentMethodName(paymentMethod)}${notes.isNotEmpty ? ' - $notes' : ''}',
               loanId: data['loanId'],
               paymentMethod: paymentMethod,
+              receiptId: receiptId,
+              paymentId: doc.id,
             ),
           );
         }
@@ -152,6 +159,182 @@ class _UserHistoryPageState extends State<UserHistoryPage> {
     }
   }
 
+  Future<void> _showReceiptDetails(HistoryEntry entry) async {
+    try {
+      if (entry.receiptId == null) {
+        _showInfoDialog(
+          'No Receipt Available',
+          'No receipt is available for this transaction.',
+        );
+        return;
+      }
+
+      // Show loading dialog
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const AlertDialog(
+          content: Row(
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(width: 16),
+              Text('Loading receipt details...'),
+            ],
+          ),
+        ),
+      );
+
+      // Fetch receipt from Firestore
+      final receiptDoc = await FirebaseFirestore.instance
+          .collection('receipts')
+          .doc(entry.receiptId)
+          .get();
+
+      // Close loading dialog
+      if (mounted) Navigator.of(context).pop();
+
+      if (!receiptDoc.exists) {
+        _showInfoDialog(
+          'Receipt Not Found',
+          'Receipt details could not be found for this transaction.',
+        );
+        return;
+      }
+
+      final receiptData = receiptDoc.data()!;
+      _showReceiptDialog(receiptData, entry);
+    } catch (e) {
+      if (mounted) Navigator.of(context).pop();
+      _showInfoDialog(
+        'Error',
+        'Failed to load receipt: $e',
+      );
+    }
+  }
+
+  void _showReceiptDialog(Map<String, dynamic> receiptData, HistoryEntry entry) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            const Icon(Icons.receipt, color: Colors.blue),
+            const SizedBox(width: 8),
+            const Text('Receipt Details'),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildReceiptDetailRow('Receipt Number', receiptData['receiptNumber'] ?? 'N/A'),
+              _buildReceiptDetailRow('Transaction Date', _formatDetailedDate(entry.date)),
+              _buildReceiptDetailRow('Amount', '₱${_formatCurrencyDetailed(receiptData['amount'] ?? 0.0)}'),
+              _buildReceiptDetailRow('Payment Method', _getPaymentMethodName(receiptData['paymentMethod'] ?? 'Unknown')),
+              _buildReceiptDetailRow('Previous Balance', '₱${_formatCurrencyDetailed(receiptData['previousBalance'] ?? 0.0)}'),
+              _buildReceiptDetailRow('New Balance', '₱${_formatCurrencyDetailed(receiptData['newBalance'] ?? 0.0)}'),
+              
+              if (receiptData['isFullPayment'] == true)
+                Container(
+                  margin: const EdgeInsets.only(top: 8),
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.green[50],
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.green),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.check_circle, color: Colors.green[700], size: 16),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Full Payment - Loan Completed',
+                        style: TextStyle(
+                          color: Colors.green[700],
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              
+              if (receiptData['notes'] != null && receiptData['notes'].toString().isNotEmpty) ...[
+                const SizedBox(height: 12),
+                const Text('Notes:', style: TextStyle(fontWeight: FontWeight.bold)),
+                const SizedBox(height: 4),
+                Text(
+                  receiptData['notes'].toString(),
+                  style: const TextStyle(color: Colors.grey),
+                ),
+              ],
+              
+              const SizedBox(height: 12),
+              const Divider(),
+              const SizedBox(height: 8),
+              Text(
+                'Transaction ID: ${entry.paymentId ?? 'N/A'}',
+                style: const TextStyle(fontSize: 10, color: Colors.grey),
+              ),
+              Text(
+                'Receipt ID: ${entry.receiptId ?? 'N/A'}',
+                style: const TextStyle(fontSize: 10, color: Colors.grey),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showInfoDialog(String title, String message) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(title),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildReceiptDetailRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 120,
+            child: Text(
+              '$label:',
+              style: const TextStyle(fontWeight: FontWeight.w500),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(color: Colors.grey),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   String _formatCurrency(double amount) {
     if (amount >= 1000000) {
       return '${(amount / 1000000).toStringAsFixed(1)}M';
@@ -162,10 +345,17 @@ class _UserHistoryPageState extends State<UserHistoryPage> {
     }
   }
 
+  String _formatCurrencyDetailed(double amount) {
+    return amount.toStringAsFixed(2).replaceAllMapped(
+      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+      (Match m) => '${m[1]},',
+    );
+  }
+
   String _getPaymentMethodName(String method) {
     switch (method) {
       case 'saved_cards':
-        return 'Saved Cards';
+        return 'Credit/Debit Card';
       case 'bank_transfer':
         return 'Bank Transfer';
       case 'cash_branch':
@@ -299,6 +489,21 @@ class _UserHistoryPageState extends State<UserHistoryPage> {
                 ),
             ],
           ),
+          // Info icon for payments with receipts
+          if (entry.operation == 'Payment' && entry.receiptId != null) ...[
+            const SizedBox(width: 8),
+            IconButton(
+              icon: Icon(
+                Icons.info_outline,
+                color: Colors.blue[600],
+                size: 20,
+              ),
+              onPressed: () => _showReceiptDetails(entry),
+              tooltip: 'View Receipt Details',
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+            ),
+          ],
         ],
       ),
     );
@@ -317,6 +522,10 @@ class _UserHistoryPageState extends State<UserHistoryPage> {
     } else {
       return '${date.day}/${date.month}/${date.year}';
     }
+  }
+
+  String _formatDetailedDate(DateTime date) {
+    return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')} ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
   }
 
   @override
@@ -417,6 +626,16 @@ class _UserHistoryPageState extends State<UserHistoryPage> {
                               Text(
                                 'Your transaction history will appear here',
                                 style: TextStyle(color: Colors.grey[500]),
+                              ),
+                              const SizedBox(height: 16),
+                              Text(
+                                '💡 Payments with receipts will show an info icon',
+                                style: TextStyle(
+                                  color: Colors.grey[500],
+                                  fontSize: 12,
+                                  fontStyle: FontStyle.italic,
+                                ),
+                                textAlign: TextAlign.center,
                               ),
                             ],
                           ),
